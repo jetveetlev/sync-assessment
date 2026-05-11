@@ -1210,6 +1210,48 @@ function openClientReport() {
     highlights.push({ dname, topGL, topGD, topRL });
   });
 
+  // ── Progress items (positive delta only) ─────────────────────────────
+  const progressItems = [];
+  rInits.forEach(ini => {
+    const ds = sessions.filter(d => d.kode.slice(0,2)===ini).sort((a,b) => parseInt(a.sesi)-parseInt(b.sesi));
+    if (ds.length < 2) return;
+    const dname = nameMap[ini] || ini;
+    const types = [...new Set(ds.map(d=>d.tipe))];
+    types.forEach(type => {
+      const tds = ds.filter(d=>d.tipe===type);
+      if (tds.length < 2) return;
+      const first = tds[0], last = tds[tds.length-1];
+      const labels = chartCfg[type] || [];
+      labels.forEach((label, idx) => {
+        const s1 = parseFloat(first[`skor${idx+1}`]);
+        const sLast = parseFloat(last[`skor${idx+1}`]);
+        const delta = sLast - s1;
+        if (delta <= 0) return;
+        const sPrev = tds.length >= 3 ? parseFloat(tds[tds.length-2][`skor${idx+1}`]) : null;
+        const pctFirst = s1 > 0 ? ((sLast - s1) / s1 * 100) : null;
+        const deltaPrev = sPrev !== null ? sLast - sPrev : null;
+        const pctPrev = sPrev !== null && sPrev > 0 && deltaPrev > 0 ? (deltaPrev / sPrev * 100) : null;
+        progressItems.push({ person: dname, label, type, delta, pctFirst, pctPrev });
+      });
+    });
+  });
+
+  const areaItemsHtml = progressItems.map(p => `
+      <div class="prog-row">
+        <div class="prog-left">
+          ${isCouple ? `<span class="prog-person">${p.person}</span>` : ''}
+          <div class="prog-label">${p.label}</div>
+          <div class="prog-type">${p.type === 'PRIBADI' ? 'Pribadi' : 'Relasi'}</div>
+        </div>
+        <div class="prog-right">
+          <div class="c-delta">+${p.delta.toFixed(1)}</div>
+          <div class="prog-pcts">
+            ${p.pctFirst !== null ? `<div class="c-pct">↑${p.pctFirst.toFixed(0)}% dari sesi 1</div>` : ''}
+            ${p.pctPrev !== null ? `<div class="c-pct c-pct-blue">↑${p.pctPrev.toFixed(0)}% sesi ini</div>` : ''}
+          </div>
+        </div>
+      </div>`).join('') || '<p style="color:#64748b;text-align:center;padding:16px 0;">Belum ada area yang meningkat.</p>';
+
   // ── Progress Insights (delta/% only, no absolute scores) ─────────────
   let gWin='', gPola='', gDyn='', gProj='';
   rInits.forEach(ini => {
@@ -1337,6 +1379,19 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f0fdfa;color:#0f172a;p
 .print-bar{display:flex;gap:10px;justify-content:center;margin-bottom:28px;}
 .pbtn{height:44px;padding:0 22px;border-radius:10px;border:none;font-family:'Inter',sans-serif;font-size:0.88em;font-weight:700;cursor:pointer;}
 .pbtn-teal{background:#0d9488;color:white;}.pbtn-ghost{background:#f1f5f9;color:#475569;}
+.prog-row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid #f1f5f9;gap:12px;}
+.prog-row:last-child{border-bottom:none;}
+.prog-left{flex:1;min-width:0;}
+.prog-person{font-size:0.68em;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#0d9488;background:#ccfbf1;padding:2px 7px;border-radius:20px;display:inline-block;margin-bottom:3px;}
+.prog-label{font-weight:600;font-size:0.9em;color:#0f172a;}
+.prog-type{font-size:0.72em;color:#94a3b8;margin-top:2px;}
+.prog-right{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.c-delta{background:#ccfbf1;color:#0f766e;font-weight:800;font-size:0.85em;padding:4px 10px;border-radius:20px;white-space:nowrap;}
+.prog-pcts{display:flex;flex-direction:column;gap:3px;align-items:flex-end;}
+.c-pct{background:#f0fdf4;color:#166534;font-size:0.72em;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap;}
+.c-pct-blue{background:#eff6ff;color:#1d4ed8;}
+.hl-below{margin-top:20px;padding-top:16px;border-top:1px solid #f1f5f9;}
+.radar-item canvas{min-height:260px;}
 @media(max-width:480px){.hl-grid{grid-template-columns:1fr;}.radar-wrap{grid-template-columns:1fr;}}
 @media print{.print-bar{display:none;}body{background:white;padding:0;}.section,.rpt-header{box-shadow:none;border:1px solid #e2e8f0;}}
 </style>
@@ -1353,7 +1408,11 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f0fdfa;color:#0f172a;p
     <div class="rpt-meta">Client Report · ${maxSesi} Sesi · ${today}</div>
   </div>
 
-  <div class="section">${hlHtml}</div>
+  <div class="section">
+    <div class="section-title">Area yang Meningkat</div>
+    ${areaItemsHtml}
+    ${hlHtml ? `<div class="hl-below">${hlHtml}</div>` : ''}
+  </div>
 
   ${insHtml}
 
@@ -1384,10 +1443,10 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f0fdfa;color:#0f172a;p
       plugins: { legend: { position:'bottom', labels:{ font:{size:11}, boxWidth:12 } }, title:{ display:!!title, text:title, font:{size:12} } },
       scales: { r: {
         min:0, max:10,
-        ticks:{ display:false },
-        grid:{ color:'rgba(0,0,0,0.06)' },
-        pointLabels:{ font:{size:11}, color:'#475569' },
-        angleLines:{ color:'rgba(0,0,0,0.06)' }
+        ticks:{ display:true, count:4, backdropColor:'transparent', font:{size:9}, color:'#94a3b8' },
+        grid:{ color:'rgba(0,0,0,0.08)' },
+        pointLabels:{ font:{size:12, weight:'600'}, color:'#334155' },
+        angleLines:{ color:'rgba(0,0,0,0.08)' }
       }}
     }
   });
@@ -1395,19 +1454,20 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f0fdfa;color:#0f172a;p
   const rose = 'rgba(225,29,72,0.15)', roseB = '#e11d48';
   const blue = 'rgba(99,102,241,0.15)', blueB = '#6366f1';
 
+  const ds = (label, data, bg, border) => ({ label, data, backgroundColor: bg, borderColor: border, borderWidth:2.5, pointRadius:4, pointHoverRadius:6, pointBackgroundColor: border });
   if (d.type === 'single') {
     new Chart(document.getElementById('rc1'), cfg(d.labels, [
-      { label: 'Sesi Pertama', data: d.p1.first, backgroundColor: blue, borderColor: blueB, borderWidth:2, pointRadius:3 },
-      { label: 'Sesi Terakhir', data: d.p1.last, backgroundColor: teal, borderColor: tealB, borderWidth:2, pointRadius:3 },
+      ds('Sesi Pertama', d.p1.first, blue, blueB),
+      ds('Sesi Terakhir', d.p1.last, teal, tealB),
     ]));
   } else {
     new Chart(document.getElementById('rc1'), cfg(d.labels, [
-      { label: d.p1.name, data: d.p1.first, backgroundColor: teal, borderColor: tealB, borderWidth:2, pointRadius:3 },
-      { label: d.p2.name, data: d.p2.first, backgroundColor: rose, borderColor: roseB, borderWidth:2, pointRadius:3 },
+      ds(d.p1.name, d.p1.first, teal, tealB),
+      ds(d.p2.name, d.p2.first, rose, roseB),
     ]));
     new Chart(document.getElementById('rc2'), cfg(d.labels, [
-      { label: d.p1.name, data: d.p1.last, backgroundColor: teal, borderColor: tealB, borderWidth:2, pointRadius:3 },
-      { label: d.p2.name, data: d.p2.last, backgroundColor: rose, borderColor: roseB, borderWidth:2, pointRadius:3 },
+      ds(d.p1.name, d.p1.last, teal, tealB),
+      ds(d.p2.name, d.p2.last, rose, roseB),
     ]));
   }
 })();
