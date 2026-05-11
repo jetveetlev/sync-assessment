@@ -1063,14 +1063,14 @@ function openPrintReport() {
   // ── Generate report HTML ───────────────────────────────────────────────
   const itemsHtml = progressItems.length
     ? `<div class="prog-grid">${progressItems.map(p => `
-        <div class="prog-card">
-          <div class="prog-card-head">
+        <div class="prog-row">
+          <div class="prog-left">
             ${isCouple ? `<span class="prog-person">${p.person}</span>` : ''}
-            <span class="prog-type-badge ${p.type === 'PRIBADI' ? 'type-pribadi' : 'type-relasi'}">${p.type === 'PRIBADI' ? 'Pribadi' : 'Relasi'}</span>
+            <div class="prog-label">${p.label}</div>
+            <div class="prog-type">${p.type === 'PRIBADI' ? 'Pribadi' : 'Relasi'}</div>
           </div>
-          <div class="prog-card-label">${p.label}</div>
-          <div class="prog-card-nums">
-            <div class="prog-delta-big">+${p.delta.toFixed(1)}</div>
+          <div class="prog-right">
+            <div class="delta">+${p.delta.toFixed(1)}</div>
             <div class="prog-pcts">
               ${p.pctFirst !== null ? `<div class="pct-tag">↑${p.pctFirst.toFixed(0)}% dari sesi 1</div>` : ''}
               ${p.pctPrev !== null ? `<div class="pct-tag pct-recent">↑${p.pctPrev.toFixed(0)}% sesi ini</div>` : ''}
@@ -1097,17 +1097,16 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f0fdfa;color:#0f172a;p
 .section{background:white;border-radius:16px;padding:24px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,0.06);}
 .section-title{font-family:'Lora',serif;font-size:1em;font-weight:700;color:#0f172a;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
 .section-title::before{content:'';width:4px;height:18px;background:#0d9488;border-radius:2px;flex-shrink:0;}
-.prog-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px;}
-.prog-card{background:#f8fafc;border-radius:12px;padding:14px 14px 12px;border-left:4px solid #0d9488;display:flex;flex-direction:column;gap:7px;}
-.prog-card-head{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
-.prog-person{font-size:0.68em;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#0d9488;background:#ccfbf1;padding:2px 7px;border-radius:20px;}
-.prog-type-badge{font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;padding:2px 7px;border-radius:20px;}
-.type-pribadi{color:#0f766e;background:#ccfbf1;}
-.type-relasi{color:#7c3aed;background:#ede9fe;}
-.prog-card-label{font-weight:700;font-size:0.88em;color:#0f172a;line-height:1.35;}
-.prog-card-nums{display:flex;align-items:center;gap:8px;margin-top:2px;flex-wrap:wrap;}
-.prog-delta-big{font-size:1.45em;font-weight:900;color:#0f766e;background:#ccfbf1;padding:3px 11px;border-radius:8px;line-height:1.2;white-space:nowrap;}
-.prog-pcts{display:flex;flex-direction:column;gap:3px;}
+.prog-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:0 16px;}
+.prog-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f1f5f9;gap:12px;}
+.prog-row:last-child{border-bottom:none;}
+.prog-left{flex:1;min-width:0;}
+.prog-person{font-size:0.68em;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#0d9488;background:#ccfbf1;padding:2px 7px;border-radius:20px;display:inline-block;margin-bottom:3px;}
+.prog-label{font-weight:600;font-size:0.88em;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.prog-type{font-size:0.72em;color:#94a3b8;margin-top:1px;}
+.prog-right{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.delta{background:#ccfbf1;color:#0f766e;font-weight:800;font-size:0.85em;padding:4px 10px;border-radius:20px;white-space:nowrap;}
+.prog-pcts{display:flex;flex-direction:column;gap:3px;align-items:flex-end;}
 .score-box{text-align:center;}
 .score-n{font-weight:700;font-size:1em;}
 .score-lbl{font-size:0.68em;color:#94a3b8;margin-top:1px;}
