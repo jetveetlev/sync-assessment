@@ -476,8 +476,6 @@ function adjSesi(d) {
 function updateSlider(el) {
   const pct = ((el.value - el.min) / (el.max - el.min)) * 100;
   el.style.backgroundSize = pct + '% 100%';
-  const v = el.closest('.slider-row').querySelector('.slider-val');
-  if (v) v.textContent = parseFloat(el.value).toFixed(1);
 }
 
 function startQuiz(type) {
@@ -498,9 +496,7 @@ function startQuiz(type) {
         <div class="slider-wrap">
           <input type="range" class="score-input" min="0" max="10" step="0.1" value="0"
                  aria-label="${q.title}" oninput="updateSlider(this)">
-          <div class="slider-hints"><span>0 — Sangat Rendah</span><span>Sangat Tinggi — 10</span></div>
         </div>
-        <div class="slider-val" aria-hidden="true">0.0</div>
       </div>`;
     qc.appendChild(card);
     updateSlider(card.querySelector('input'));

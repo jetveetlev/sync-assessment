@@ -449,19 +449,19 @@ body { font-family:'Inter',-apple-system,system-ui,sans-serif; background:var(--
   <div class="main-content">
     <div class="page-hdr">
       <div>
-        <div class="page-title">Klien Saya</div>
+        <div class="page-title">Client Saya</div>
         <div class="page-count" id="clientCount">Memuat...</div>
       </div>
       <button class="new-btn" onclick="openNewModal()">
         <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Tambah Klien
+        Tambah Client
       </button>
     </div>
 
     <div class="filter-bar">
       <div class="search-wrap">
         <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" class="search-input" id="searchInput" placeholder="Cari nama klien..." oninput="renderClients()">
+        <input type="text" class="search-input" id="searchInput" placeholder="Cari nama client..." oninput="renderClients()">
       </div>
       <div class="filter-btns">
         <button class="filter-btn active" data-filter="all"    onclick="setFilter('all',this)">Semua</button>
@@ -478,7 +478,7 @@ body { font-family:'Inter',-apple-system,system-ui,sans-serif; background:var(--
 <div class="overlay" id="newModal" onclick="if(event.target===this) closeNewModal()">
   <div class="modal">
     <div class="modal-hdr">
-      <div class="modal-title">Tambah Klien Baru</div>
+      <div class="modal-title">Tambah Client Baru</div>
       <button class="modal-close" onclick="closeNewModal()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
 
@@ -494,7 +494,7 @@ body { font-family:'Inter',-apple-system,system-ui,sans-serif; background:var(--
     </div>
 
     <div class="form-row">
-      <label class="form-label" for="nName" id="nNameLabel">Nama Klien</label>
+      <label class="form-label" for="nName" id="nNameLabel">Nama Client</label>
       <input type="text" class="form-field" id="nName" placeholder="Contoh: Budi" oninput="updateCodePreview()">
     </div>
     <div class="form-row">
@@ -522,7 +522,7 @@ body { font-family:'Inter',-apple-system,system-ui,sans-serif; background:var(--
     </div>
 
     <div class="modal-error" id="newErr"></div>
-    <button class="btn btn-teal" id="createBtn" onclick="createClient()">Buat Klien</button>
+    <button class="btn btn-teal" id="createBtn" onclick="createClient()">Buat Client</button>
   </div>
 </div>
 
@@ -530,10 +530,10 @@ body { font-family:'Inter',-apple-system,system-ui,sans-serif; background:var(--
 <div class="overlay" id="successModal" onclick="if(event.target===this) closeSuccessModal()">
   <div class="modal">
     <div class="modal-hdr">
-      <div class="modal-title">Klien Berhasil Dibuat</div>
+      <div class="modal-title">Client Berhasil Dibuat</div>
       <button class="modal-close" onclick="closeSuccessModal()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
-    <div style="color:var(--slate-2);font-size:0.85em;margin-bottom:16px;line-height:1.6;">Bagikan kode ini kepada klien Anda. Mereka akan menggunakannya untuk mengisi assessment.</div>
+    <div style="color:var(--slate-2);font-size:0.85em;margin-bottom:16px;line-height:1.6;">Bagikan kode ini kepada client Anda. Mereka akan menggunakannya untuk mengisi assessment.</div>
     <div class="success-codes" id="successCodes"></div>
     <button class="btn btn-teal" onclick="closeSuccessModal()">Selesai</button>
   </div>
@@ -638,12 +638,12 @@ async function doLogin() {
 }
 
 async function confirmDelete(id, name) {
-  if (!confirm(`Hapus klien "${name}" beserta semua data sesinya?\n\nTindakan ini tidak bisa dibatalkan.`)) return;
+  if (!confirm(`Hapus client "${name}" beserta semua data sesinya?\n\nTindakan ini tidak bisa dibatalkan.`)) return;
   gLoad(true);
   try {
     const d = await api('delete_client', 'POST', { id });
     if (d.success) { toast(`${name} berhasil dihapus.`); await loadClients(); }
-    else toast('Gagal menghapus klien.');
+    else toast('Gagal menghapus client.');
   } catch { toast('Koneksi gagal.'); }
   finally { gLoad(false); }
 }
@@ -682,7 +682,7 @@ async function loadClients() {
     const d = await api('clients');
     allClients = Array.isArray(d) ? d : [];
     renderClients();
-  } catch { toast('Gagal memuat klien.'); }
+  } catch { toast('Gagal memuat client.'); }
   finally { gLoad(false); }
 }
 
@@ -705,14 +705,14 @@ function renderClients() {
 
   const count = allClients.length;
   document.getElementById('clientCount').textContent =
-    count === 0 ? 'Belum ada klien' : `${count} klien terdaftar`;
+    count === 0 ? 'Belum ada client' : `${count} client terdaftar`;
 
   const grid = document.getElementById('clientGrid');
   if (!list.length) {
     grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
       <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-      <div class="empty-title">${q ? 'Klien tidak ditemukan' : 'Belum ada klien'}</div>
-      <div style="font-size:0.83em;">${q ? 'Coba kata kunci lain.' : 'Klik "Tambah Klien" untuk mulai.'}</div>
+      <div class="empty-title">${q ? 'Client tidak ditemukan' : 'Belum ada client'}</div>
+      <div style="font-size:0.83em;">${q ? 'Coba kata kunci lain.' : 'Klik "Tambah Client" untuk mulai.'}</div>
     </div>`;
     return;
   }
@@ -747,7 +747,7 @@ function renderClients() {
           <strong>${c.max_session||0}</strong> sesi · Terakhir ${lastDate}
         </div>
         <div style="display:flex;gap:6px;" onclick="event.stopPropagation()">
-          <button class="view-btn" style="color:var(--red);border-color:#fecaca;padding:0 10px;" title="Hapus klien"
+          <button class="view-btn" style="color:var(--red);border-color:#fecaca;padding:0 10px;" title="Hapus client"
                   onclick="confirmDelete(${c.id},'${displayName.replace(/'/g,"\\'")}')">
             <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
           </button>
@@ -796,7 +796,7 @@ function setNewType(t) {
     document.getElementById('tog-single').classList.remove('sel');
   }
   document.getElementById('partnerFields').style.display = t==='couple' ? 'block' : 'none';
-  document.getElementById('nNameLabel').textContent = t==='couple' ? 'Nama Klien (Partner A)' : 'Nama Klien';
+  document.getElementById('nNameLabel').textContent = t==='couple' ? 'Nama Client (Partner A)' : 'Nama Client';
   updateCodePreview();
 }
 
@@ -821,7 +821,7 @@ async function createClient() {
   const btn  = document.getElementById('createBtn');
   const err  = document.getElementById('newErr');
   const name = document.getElementById('nName').value.trim();
-  if (!name) { err.textContent = 'Nama klien wajib diisi.'; return; }
+  if (!name) { err.textContent = 'Nama client wajib diisi.'; return; }
   if (newClientType==='couple' && !document.getElementById('nPartnerName').value.trim()) {
     err.textContent = 'Nama partner wajib diisi.'; return;
   }
@@ -838,7 +838,7 @@ async function createClient() {
       closeNewModal();
       showSuccessModal(d.client);
       await loadClients();
-    } else { err.textContent = d.error || 'Gagal membuat klien. Coba lagi.'; }
+    } else { err.textContent = d.error || 'Gagal membuat client. Coba lagi.'; }
   } catch { err.textContent = 'Koneksi gagal.'; }
   finally { btn.disabled = false; }
 }
@@ -938,68 +938,93 @@ function openPrintReport() {
         const s1    = parseFloat(first[`skor${idx+1}`]);
         const sLast = parseFloat(last[`skor${idx+1}`]);
         const delta = sLast - s1;
-        if (delta > 0) progressItems.push({
-          person: nameMap[ini] || ini, type, label,
-          s1, sLast, delta,
+        if (delta <= 0) return;
+        const sPrev     = ds.length >= 3 ? parseFloat(ds[ds.length-2][`skor${idx+1}`]) : null;
+        const deltaPrev = sPrev !== null ? sLast - sPrev : null;
+        const pctFirst  = s1 > 0 ? ((sLast - s1) / s1 * 100) : null;
+        const pctPrev   = sPrev !== null && sPrev > 0 && deltaPrev > 0 ? (deltaPrev / sPrev * 100) : null;
+        progressItems.push({
+          person: nameMap[ini] || ini, type, label, delta,
           sesiAwal: first.sesi, sesiAkhir: last.sesi,
+          pctFirst, pctPrev,
         });
       });
     });
   });
 
-  // ── Build positive insights only ───────────────────────────────────────
-  const inits = [...new Set(sessions.map(d => d.kode.slice(0,2)))];
-  const cData = {};
-  inits.forEach(ini => {
-    cData[ini] = sessions.sort((a,b) => parseInt(a.sesi)-parseInt(b.sesi)).filter(d => d.kode.slice(0,2)===ini);
-  });
+  // ── Build Progress Insights ────────────────────────────────────────────
+  const rptInits = [...new Set(sessions.map(d => d.kode.slice(0,2)))];
   const maxSesiOverall = getMaxSesi(sessions);
+  let gWin='', gPola='', gDyn='', gProj='';
 
-  let winsHtml = '';
-  inits.forEach(ini => {
-    const ds = cData[ini];
+  rptInits.forEach(ini => {
+    const ds = sessions.filter(d => d.kode.slice(0,2)===ini).sort((a,b) => parseInt(a.sesi)-parseInt(b.sesi));
     if (ds.length < 2) return;
     const dname = nameMap[ini] || ini;
     const first = ds[0], last = ds[ds.length-1], prev = ds[ds.length-2];
+    const labels = chartCfg[last.tipe] || [];
 
-    // Biggest overall gain
+    // Biggest gain from first session
     let maxDi=-1, maxD=0;
-    ['PRIBADI','RELASI'].forEach(type => {
-      chartCfg[type].forEach((_,i) => {
-        const d = parseFloat(last[`skor${i+1}`]) - parseFloat(first[`skor${i+1}`]);
-        if (d > maxD) { maxD=d; maxDi=i; }
-      });
+    labels.forEach((_,i) => { const d=parseFloat(last[`skor${i+1}`])-parseFloat(first[`skor${i+1}`]); if(d>maxD){maxD=d;maxDi=i;} });
+    if (maxDi!==-1) gWin += `<li><b>Apresiasi Besar (${dname}):</b> Area <b>${labels[maxDi]}</b> meningkat <b>+${maxD.toFixed(1)}</b> poin sejak awal.</li>`;
+
+    // Micro wins from last session
+    const wins = [];
+    labels.forEach((_,i) => { const d=parseFloat(last[`skor${i+1}`])-parseFloat(prev[`skor${i+1}`]); if(d>0) wins.push({label:labels[i],delta:d}); });
+    if (wins.length===1) gWin += `<li><b>Langkah Kecil (${dname}):</b> Naik di <b>${wins[0].label}</b> sesi ini.</li>`;
+    else if (wins.length>=2) {
+      gWin  += `<li><b>Kemajuan (${dname}):</b> Peningkatan pada <b>${wins[0].label}</b> dan <b>${wins[1].label}</b> sesi ini.</li>`;
+      gPola += `<li><b>Efek Domino (${dname}):</b> Usaha di <b>${wins[0].label}</b> berdampak positif pada <b>${wins[1].label}</b>.</li>`;
+    }
+
+    // Leverage
+    labels.forEach((l,i) => {
+      const d=parseFloat(last[`skor${i+1}`])-parseFloat(prev[`skor${i+1}`]);
+      const dt=parseFloat(last.total)-parseFloat(prev.total);
+      if(d>0 && d<=1.0 && dt>=2.5) gWin += `<li><b>Daya Ungkit (${dname}):</b> Perubahan kecil pada <b>${l}</b> mendongkrak total +${dt.toFixed(1)}.</li>`;
     });
 
-    // Recent wins
-    const recentType = last.tipe;
-    const labels     = chartCfg[recentType] || [];
-    labels.forEach((_,i) => {
-      const d = parseFloat(last[`skor${i+1}`]) - parseFloat(prev[`skor${i+1}`]);
-      if (d > 0) winsHtml += `<li><b>${dname}</b> meningkatkan <b>${labels[i]}</b> sebesar <b>+${d.toFixed(1)}</b> di sesi terakhir.</li>`;
-    });
+    // Self-care (RELASI)
+    if (last.tipe==='RELASI') {
+      const ds2=parseFloat(last.skor1)-parseFloat(prev.skor1), dt=parseFloat(last.total)-parseFloat(prev.total);
+      if(ds2>0 && dt>0) gPola += `<li><b>Self-Care (${dname}):</b> Merawat <b>Kebahagiaan Pribadi</b> turut meningkatkan kualitas relasi!</li>`;
+    }
+
+    // Strongest area (no absolute number)
+    let maxA=-1, maxAi=-1;
+    labels.forEach((_,i) => { const avg=ds.reduce((s,x)=>s+parseFloat(x[`skor${i+1}`]),0)/ds.length; if(avg>maxA){maxA=avg;maxAi=i;} });
+    if (maxAi!==-1) gPola += `<li><b>Fondasi Utama (${dname}):</b> <b>${labels[maxAi]}</b> adalah kekuatan terkuat.</li>`;
 
     // Momentum
-    const lt = parseFloat(last.total), pt = parseFloat(prev.total);
-    if (lt > pt) {
-      const pct = ((lt-pt)/pt*100).toFixed(1);
-      winsHtml += `<li><b>${dname}</b> tumbuh <b>${pct}%</b> dari sesi sebelumnya.</li>`;
-    }
+    const lt=parseFloat(last.total), pt=parseFloat(prev.total);
+    if(lt>pt) { const pct=((lt-pt)/pt*100).toFixed(1); gProj += `<li><b>Momentum (${dname}):</b> Tumbuh <b>${pct}%</b> dari sesi sebelumnya.</li>`; }
   });
 
-  // Couple sync
-  if (inits.length === 2) {
-    const [i1,i2] = inits;
-    const s1 = cData[i1], s2 = cData[i2];
-    if (s1.length >= 2 && s2.length >= 2) {
-      const l1=s1[s1.length-1], p1=s1[s1.length-2], l2=s2[s2.length-1], p2=s2[s2.length-2];
-      chartCfg['RELASI'].forEach((lbl,i) => {
+  // Couple dynamics
+  if (rptInits.length===2) {
+    const [i1,i2]=rptInits;
+    const ds1=sessions.filter(d=>d.kode.slice(0,2)===i1).sort((a,b)=>parseInt(a.sesi)-parseInt(b.sesi));
+    const ds2=sessions.filter(d=>d.kode.slice(0,2)===i2).sort((a,b)=>parseInt(a.sesi)-parseInt(b.sesi));
+    if(ds1.length>=2 && ds2.length>=2) {
+      const l1=ds1[ds1.length-1],p1=ds1[ds1.length-2],l2=ds2[ds2.length-1],p2=ds2[ds2.length-2];
+      const n1=nameMap[i1]||i1, n2=nameMap[i2]||i2;
+      chartCfg['RELASI'].forEach((lbl,i)=>{
         const d1=parseFloat(l1[`skor${i+1}`])-parseFloat(p1[`skor${i+1}`]);
         const d2=parseFloat(l2[`skor${i+1}`])-parseFloat(p2[`skor${i+1}`]);
-        if (d1>0 && d2>0) winsHtml += `<li>Keduanya (<b>${nameMap[i1]||i1} & ${nameMap[i2]||i2}</b>) sama-sama meningkat di <b>${lbl}</b>.</li>`;
+        if(d1>0&&d2>0) gDyn += `<li><b>Kerja Sama Solid:</b> Keduanya (${n1} & ${n2}) sama-sama meningkat di <b>${lbl}</b>.</li>`;
       });
     }
   }
+
+  const insightsHtml = (gWin||gPola||gDyn||gProj) ? `
+    <div class="section">
+      <div class="section-title">Progress Insights</div>
+      ${gWin  ? `<div class="insight-grp"><div class="insight-ttl">Kemenangan Sesi Ini</div><ul class="insight-ul">${gWin}</ul></div>` : ''}
+      ${gPola ? `<div class="insight-grp"><div class="insight-ttl">Pola & Fondasi</div><ul class="insight-ul">${gPola}</ul></div>` : ''}
+      ${gDyn  ? `<div class="insight-grp"><div class="insight-ttl">Dinamika Pasangan</div><ul class="insight-ul">${gDyn}</ul></div>` : ''}
+      ${gProj ? `<div class="insight-grp"><div class="insight-ttl">Melihat ke Depan</div><ul class="insight-ul">${gProj}</ul></div>` : ''}
+    </div>` : '';
 
   // ── Generate report HTML ───────────────────────────────────────────────
   const itemsHtml = progressItems.length
@@ -1011,16 +1036,9 @@ function openPrintReport() {
             <div class="prog-type">${p.type === 'PRIBADI' ? 'Pribadi' : 'Relasi'}</div>
           </div>
           <div class="prog-right">
-            <div class="score-box muted">
-              <div class="score-n">${p.s1.toFixed(1)}</div>
-              <div class="score-lbl">Sesi ${p.sesiAwal}</div>
-            </div>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-            <div class="score-box accent">
-              <div class="score-n">${p.sLast.toFixed(1)}</div>
-              <div class="score-lbl">Sesi ${p.sesiAkhir}</div>
-            </div>
             <div class="delta">+${p.delta.toFixed(1)}</div>
+            ${p.pctFirst !== null ? `<div class="pct-tag">↑${p.pctFirst.toFixed(0)}% dari sesi 1</div>` : ''}
+            ${p.pctPrev !== null ? `<div class="pct-tag pct-recent">↑${p.pctPrev.toFixed(0)}% sesi ini</div>` : ''}
           </div>
         </div>`).join('')
     : `<p style="color:#64748b;text-align:center;padding:20px 0;">Belum ada area yang meningkat.</p>`;
@@ -1058,6 +1076,12 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f0fdfa;color:#0f172a;p
 .delta{background:#ccfbf1;color:#0f766e;font-weight:800;font-size:0.82em;padding:4px 10px;border-radius:20px;white-space:nowrap;}
 .wins-list{padding-left:18px;color:#166534;font-size:0.87em;line-height:1.9;}
 .wins-list li{margin-bottom:2px;}
+.pct-tag{background:#f0fdf4;color:#166534;font-size:0.72em;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap;}
+.pct-recent{background:#eff6ff;color:#1d4ed8;}
+.insight-grp{margin-bottom:14px;}.insight-grp:last-child{margin-bottom:0;}
+.insight-ttl{font-weight:700;font-size:0.8em;text-transform:uppercase;letter-spacing:0.5px;color:#0d9488;margin-bottom:6px;}
+.insight-ul{padding-left:16px;color:#166534;font-size:0.87em;line-height:1.9;}
+.insight-ul li{margin-bottom:2px;}
 .rpt-footer{text-align:center;padding:24px 20px;color:#475569;font-size:0.83em;line-height:1.7;}
 .rpt-footer strong{color:#0d9488;font-family:'Lora',serif;font-size:1.1em;display:block;margin-bottom:6px;}
 .print-bar{display:flex;gap:10px;justify-content:center;margin-bottom:28px;}
@@ -1085,10 +1109,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f0fdfa;color:#0f172a;p
     ${itemsHtml}
   </div>
 
-  ${winsHtml ? `<div class="section">
-    <div class="section-title">Highlight Kemajuan</div>
-    <ul class="wins-list">${winsHtml}</ul>
-  </div>` : ''}
+  ${insightsHtml}
 
   <div class="rpt-footer">
     <strong>Selamat atas kemajuan yang telah dicapai!</strong>
