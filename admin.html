@@ -1062,7 +1062,7 @@ function openPrintReport() {
 
   // ── Generate report HTML ───────────────────────────────────────────────
   const itemsHtml = progressItems.length
-    ? `<div class="prog-grid">${progressItems.map(p => `
+    ? progressItems.map(p => `
         <div class="prog-row">
           <div class="prog-left">
             ${isCouple ? `<span class="prog-person">${p.person}</span>` : ''}
@@ -1076,7 +1076,7 @@ function openPrintReport() {
               ${p.pctPrev !== null ? `<div class="pct-tag pct-recent">↑${p.pctPrev.toFixed(0)}% sesi ini</div>` : ''}
             </div>
           </div>
-        </div>`).join('')}</div>`
+        </div>`).join('')
     : `<p style="color:#64748b;text-align:center;padding:20px 0;">Belum ada area yang meningkat.</p>`;
 
   const html = `<!DOCTYPE html>
@@ -1097,16 +1097,16 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f0fdfa;color:#0f172a;p
 .section{background:white;border-radius:16px;padding:24px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,0.06);}
 .section-title{font-family:'Lora',serif;font-size:1em;font-weight:700;color:#0f172a;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
 .section-title::before{content:'';width:4px;height:18px;background:#0d9488;border-radius:2px;flex-shrink:0;}
-.prog-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:0 16px;}
-.prog-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f1f5f9;gap:12px;}
+.prog-row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid #f1f5f9;gap:12px;}
 .prog-row:last-child{border-bottom:none;}
 .prog-left{flex:1;min-width:0;}
 .prog-person{font-size:0.68em;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:#0d9488;background:#ccfbf1;padding:2px 7px;border-radius:20px;display:inline-block;margin-bottom:3px;}
-.prog-label{font-weight:600;font-size:0.88em;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.prog-type{font-size:0.72em;color:#94a3b8;margin-top:1px;}
+.prog-label{font-weight:600;font-size:0.9em;color:#0f172a;}
+.prog-type{font-size:0.72em;color:#94a3b8;margin-top:2px;}
 .prog-right{display:flex;align-items:center;gap:6px;flex-shrink:0;}
 .delta{background:#ccfbf1;color:#0f766e;font-weight:800;font-size:0.85em;padding:4px 10px;border-radius:20px;white-space:nowrap;}
 .prog-pcts{display:flex;flex-direction:column;gap:3px;align-items:flex-end;}
+.hl-below{margin-top:20px;padding-top:16px;border-top:1px solid #f1f5f9;}
 .score-box{text-align:center;}
 .score-n{font-weight:700;font-size:1em;}
 .score-lbl{font-size:0.68em;color:#94a3b8;margin-top:1px;}
@@ -1153,11 +1153,10 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f0fdfa;color:#0f172a;p
     <div class="rpt-meta">Laporan Kemajuan · ${maxSesiOverall} Sesi · ${today}</div>
   </div>
 
-  ${hlCardsHtml ? `<div class="section">${hlCardsHtml}</div>` : ''}
-
   <div class="section">
     <div class="section-title">Area yang Meningkat</div>
     ${itemsHtml}
+    ${hlCardsHtml ? `<div class="hl-below">${hlCardsHtml}</div>` : ''}
   </div>
 
   ${insightsHtml}
