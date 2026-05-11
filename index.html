@@ -401,7 +401,7 @@ function onCodeInput() {
   const el  = document.getElementById('clientCode');
   const row = document.getElementById('statusRow');
   el.value  = el.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-  if (SECRET[el.value]) { window.location.href = 'admin.html?coach=' + SECRET[el.value]; return; }
+  if (SECRET[el.value]) { doAutoLogin(el.value); return; }
   el.classList.remove('valid','error');
   row.textContent = ''; row.className = 'status-row';
   document.getElementById('typeGrid').style.display = 'none';
@@ -439,6 +439,23 @@ async function verifyCode(code) {
 function adjSesi(d) {
   sesiKe = Math.max(1, Math.min(99, sesiKe + d));
   document.getElementById('sesiNum').textContent = sesiKe;
+}
+
+async function doAutoLogin(secret) {
+  setLoading(true);
+  try {
+    const res = await fetch('/.netlify/functions/api?action=autologin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ secret }),
+    });
+    const d = await res.json();
+    if (d.success) {
+      localStorage.setItem('sync_token', d.token);
+      window.location.href = 'admin.html';
+    }
+  } catch {}
+  finally { setLoading(false); }
 }
 
 function updateSlider(el) {

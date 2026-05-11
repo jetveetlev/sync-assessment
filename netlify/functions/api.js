@@ -150,6 +150,24 @@ exports.handler = async (event) => {
         return ok({ success: r.code === 201 });
       }
 
+      // ── Coach: auto-login via secret code ───────────────────────────────
+      case 'autologin': {
+        const secrets = {
+          [process.env.SECRET_JET || '102132']: 'jet',
+          [process.env.SECRET_LEX || '010203']: 'lex',
+        };
+        const username = secrets[(body.secret || '').trim()];
+        if (!username) return err('Invalid', 403);
+        const coach = COACHES[username];
+        const newToken = randomUUID();
+        const expires  = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
+        await sb('admin_sessions', 'POST', {
+          token: newToken, coach_id: coach.id, coach_name: coach.name,
+          coach_username: username, expires_at: expires,
+        });
+        return ok({ success: true, name: coach.name, token: newToken });
+      }
+
       // ── Coach: login ─────────────────────────────────────────────────────
       case 'login': {
         const username = (body.username || '').toLowerCase().trim();
