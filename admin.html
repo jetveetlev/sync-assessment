@@ -662,6 +662,10 @@ async function doLogout() {
   showScreen('s-login');
 }
 
+// ── Pre-select coach from URL param ──
+const _urlCoach = new URLSearchParams(location.search).get('coach');
+if (_urlCoach && ['jet','lex'].includes(_urlCoach)) selectCoach(_urlCoach);
+
 // ── Auto-check session on load ──
 (async () => {
   try {
