@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Sync Assessment</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --teal:      #0d9488;
+  --teal-dk:   #0f766e;
+  --teal-lt:   #ccfbf1;
+  --teal-xlt:  #f0fdfa;
+  --slate:     #0f172a;
+  --slate-2:   #475569;
+  --slate-3:   #94a3b8;
+  --border:    #e2e8f0;
+  --bg:        #f0fdf9;
+  --surface:   #ffffff;
+  --red:       #ef4444;
+  --green:     #10b981;
+  --radius:    18px;
+  --radius-sm: 12px;
+  --shadow:    0 1px 4px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-lg: 0 8px 24px rgba(13,148,136,0.12), 0 2px 8px rgba(0,0,0,0.06);
+}
+
+body {
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--slate);
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: contain;
+}
+
+/* ── Screen system ── */
+.screen { display: none; min-height: 100dvh; flex-direction: column; padding: 24px 20px 32px; }
+.screen.active { display: flex; }
+
+/* ── Header ── */
+.app-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.logo-mark {
+  width: 40px; height: 40px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--teal) 0%, #14b8a6 100%);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(13,148,136,0.35);
+}
+.logo-mark svg { width: 22px; height: 22px; fill: white; }
+.app-title { font-family: 'Lora', Georgia, serif; font-size: 1.1em; font-weight: 700; color: var(--slate); line-height: 1.2; }
+.app-sub   { font-size: 0.75em; color: var(--slate-2); font-weight: 500; margin-top: 1px; }
+
+.back-btn {
+  width: 40px; height: 40px; min-width: 44px; min-height: 44px;
+  border-radius: 10px; border: 1.5px solid var(--border);
+  background: white; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+.back-btn:hover { background: #f8fafc; border-color: var(--teal); }
+.back-btn svg { width: 18px; height: 18px; stroke: var(--slate-2); fill: none; stroke-width: 2.5; stroke-linecap: round; }
+
+/* ── Cards ── */
+.card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 28px 24px;
+}
+
+/* ── Code input ── */
+.input-label {
+  display: block;
+  font-size: 0.75em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--slate-2);
+  margin-bottom: 10px;
+  text-align: center;
+}
+.code-field {
+  width: 100%;
+  height: 68px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: 'Inter', monospace;
+  font-size: 1.8em;
+  font-weight: 700;
+  letter-spacing: 6px;
+  text-align: center;
+  text-transform: uppercase;
+  background: #fafafa;
+  color: var(--slate);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.code-field:focus  { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(13,148,136,0.12); }
+.code-field.valid  { border-color: var(--green); background: #f0fdf4; }
+.code-field.error  { border-color: var(--red);   background: #fff5f5; }
+
+.status-row {
+  min-height: 22px;
+  text-align: center;
+  margin-top: 10px;
+  font-size: 0.83em;
+  font-weight: 500;
+}
+.status-row.loading { color: var(--slate-3); }
+.status-row.ok      { color: var(--green); }
+.status-row.fail    { color: var(--red); }
+
+/* ── Assessment type cards ── */
+.type-grid { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
+.type-card {
+  background: white;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.1s;
+}
+.type-card:hover  { border-color: var(--teal); box-shadow: var(--shadow-lg); }
+.type-card:active { transform: scale(0.98); }
+.type-card.relasi:hover { border-color: #6366f1; }
+.type-icon-wrap {
+  width: 48px; height: 48px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.type-icon-wrap.teal   { background: var(--teal-lt); }
+.type-icon-wrap.indigo { background: #ede9fe; }
+.type-icon-wrap svg { width: 24px; height: 24px; }
+.type-body {}
+.type-name { font-weight: 700; color: var(--slate); font-size: 0.95em; }
+.type-desc { font-size: 0.8em; color: var(--slate-2); margin-top: 3px; line-height: 1.4; }
+
+/* ── Progress bar ── */
+.progress-wrap { height: 4px; background: var(--border); border-radius: 2px; margin-bottom: 24px; }
+.progress-fill {
+  height: 100%; border-radius: 2px;
+  background: linear-gradient(90deg, var(--teal), #14b8a6);
+  transition: width 0.35s ease;
+}
+
+/* ── Session stepper ── */
+.sesi-row {
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.sesi-label { font-size: 0.85em; font-weight: 600; color: var(--slate-2); }
+.sesi-ctl   { display: flex; align-items: center; gap: 14px; }
+.sesi-btn {
+  width: 36px; height: 36px; min-width: 44px; min-height: 44px;
+  border-radius: 8px; border: 1.5px solid var(--border);
+  background: white; cursor: pointer; font-size: 1.2em; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--slate-2);
+  transition: background 0.15s, border-color 0.15s;
+}
+.sesi-btn:hover  { background: var(--teal-lt); border-color: var(--teal); color: var(--teal-dk); }
+.sesi-btn:active { background: #99f6e4; }
+.sesi-num { font-size: 1.4em; font-weight: 700; min-width: 32px; text-align: center; color: var(--slate); }
+
+/* ── Instruction box ── */
+.instruction {
+  background: #eff6ff;
+  border-left: 3px solid #60a5fa;
+  border-radius: 0 8px 8px 0;
+  padding: 13px 16px;
+  margin-bottom: 18px;
+  font-size: 0.83em;
+  color: #1d4ed8;
+  line-height: 1.65;
+}
+
+/* ── Question card ── */
+.q-card {
+  background: white;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 20px 20px 22px;
+  margin-bottom: 14px;
+}
+.q-title { font-family: 'Lora', serif; font-weight: 700; font-size: 0.95em; color: var(--slate); letter-spacing: -0.2px; }
+.q-sub   { font-size: 0.78em; color: var(--slate-2); margin-top: 4px; margin-bottom: 18px; line-height: 1.45; }
+
+.slider-row  { display: flex; align-items: center; gap: 12px; }
+.slider-wrap { flex: 1; }
+.slider-val  {
+  width: 52px; height: 52px; min-width: 44px; min-height: 44px;
+  border-radius: 12px;
+  background: var(--teal-lt);
+  color: var(--teal-dk);
+  font-weight: 700; font-size: 1em;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+.slider-hints { display: flex; justify-content: space-between; margin-top: 5px; }
+.slider-hints span { font-size: 0.68em; color: var(--slate-3); font-weight: 500; }
+
+input[type=range] {
+  -webkit-appearance: none;
+  width: 100%; height: 6px;
+  background: var(--border); border-radius: 3px; outline: none;
+  background-image: linear-gradient(var(--teal), var(--teal));
+  background-size: 0% 100%; background-repeat: no-repeat;
+  cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 26px; width: 26px; border-radius: 50%;
+  background: white; cursor: pointer;
+  border: 3px solid var(--teal);
+  box-shadow: 0 2px 6px rgba(13,148,136,0.28);
+  transition: transform 0.1s;
+}
+input[type=range]::-webkit-slider-thumb:active { transform: scale(1.15); }
+input[type=range]:focus { outline: none; }
+
+/* ── Buttons ── */
+.btn {
+  width: 100%; height: 52px; border: none; border-radius: var(--radius-sm);
+  font-family: 'Inter', sans-serif; font-size: 0.92em; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: opacity 0.2s, transform 0.1s, box-shadow 0.2s;
+  letter-spacing: 0.3px;
+}
+.btn:active { transform: scale(0.98); }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+.btn-teal    { background: var(--teal); color: white; box-shadow: 0 2px 8px rgba(13,148,136,0.3); }
+.btn-teal:hover:not(:disabled) { background: var(--teal-dk); box-shadow: 0 4px 14px rgba(13,148,136,0.4); }
+.btn-ghost   { background: #f1f5f9; color: var(--slate-2); }
+.btn-ghost:hover { background: #e2e8f0; }
+
+/* ── Thank you ── */
+.check-circle {
+  width: 80px; height: 80px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--teal-lt), #a7f3d0);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 22px;
+}
+.check-circle svg { width: 40px; height: 40px; stroke: var(--teal-dk); fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ── Loading overlay ── */
+.loader-cover {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(240,253,250,0.88);
+  backdrop-filter: blur(4px);
+  display: none; flex-direction: column;
+  align-items: center; justify-content: center; gap: 14px;
+}
+.loader-cover.on { display: flex; }
+.spinner {
+  width: 38px; height: 38px;
+  border: 3px solid var(--border);
+  border-top-color: var(--teal);
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner-lbl { font-size: 0.82em; color: var(--slate-2); font-weight: 500; }
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation: none; border-top-color: var(--teal); }
+  .btn, .type-card, .back-btn, .code-field { transition: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="loader-cover" id="loader">
+  <div class="spinner"></div>
+  <div class="spinner-lbl">Memproses...</div>
+</div>
+
+<!-- ═══════ SCREEN 1: Code Entry ═══════ -->
+<div class="screen active" id="s-code">
+  <div class="app-bar">
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+    </div>
+    <div>
+      <div class="app-title">Sync Assessment</div>
+      <div class="app-sub">Evaluasi Sesi Konseling</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:20px;">
+    <div style="text-align:center;margin-bottom:22px;">
+      <div style="font-family:'Lora',serif;font-size:1.25em;font-weight:700;color:var(--slate);">Selamat Datang</div>
+      <div style="font-size:0.83em;color:var(--slate-2);margin-top:5px;line-height:1.5;">Masukkan kode unik dari coach Anda<br>untuk memulai assessment.</div>
+    </div>
+    <label class="input-label" for="clientCode">Kode Sesi Anda</label>
+    <input type="text" id="clientCode" class="code-field"
+           placeholder="••••••••"
+           maxlength="8"
+           autocomplete="off" autocorrect="off" spellcheck="false"
+           inputmode="text"
+           oninput="onCodeInput()">
+    <div class="status-row" id="statusRow"></div>
+  </div>
+
+  <div id="typeGrid" class="type-grid" style="display:none;">
+    <div class="type-card" id="btnPribadi" onclick="startQuiz('PRIBADI')">
+      <div class="type-icon-wrap teal">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+        </svg>
+      </div>
+      <div class="type-body">
+        <div class="type-name">Assessment Pribadi</div>
+        <div class="type-desc">Evaluasi kesejahteraan dan kebahagiaan individual</div>
+      </div>
+    </div>
+    <div class="type-card relasi" id="btnRelasi" onclick="startQuiz('RELASI')" style="display:none;">
+      <div class="type-icon-wrap indigo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+        </svg>
+      </div>
+      <div class="type-body">
+        <div class="type-name">Assessment Relasi</div>
+        <div class="type-desc">Evaluasi kualitas hubungan dan dinamika pasangan</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ SCREEN 2: Assessment Form ═══════ -->
+<div class="screen" id="s-quiz">
+  <div class="app-bar">
+    <button class="back-btn" onclick="showScreen('s-code')" aria-label="Kembali">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div>
+      <div class="app-title" id="quizTitle">Assessment</div>
+      <div class="app-sub"  id="quizSub"></div>
+    </div>
+  </div>
+
+  <div class="progress-wrap"><div class="progress-fill" id="progress" style="width:0%"></div></div>
+
+  <div class="sesi-row">
+    <div class="sesi-label">Ini sesi ke-</div>
+    <div class="sesi-ctl">
+      <button class="sesi-btn" onclick="adjSesi(-1)" aria-label="Kurangi sesi">−</button>
+      <div class="sesi-num" id="sesiNum">1</div>
+      <button class="sesi-btn" onclick="adjSesi(1)"  aria-label="Tambah sesi">+</button>
+    </div>
+  </div>
+
+  <div class="instruction">
+    Ingat-ingat <strong>sepanjang seminggu terakhir</strong> — bagaimana perasaan Anda secara keseluruhan di setiap area ini. Geser ke kanan = semakin baik / semakin tinggi.
+  </div>
+
+  <div id="questions"></div>
+
+  <div style="padding-top:8px;margin-top:auto;">
+    <button class="btn btn-teal" id="submitBtn" onclick="submitData()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      Simpan Assessment
+    </button>
+  </div>
+</div>
+
+<!-- ═══════ SCREEN 3: Thank You ═══════ -->
+<div class="screen" id="s-thanks" style="align-items:center;justify-content:center;">
+  <div class="card" style="width:100%;max-width:400px;text-align:center;">
+    <div class="check-circle">
+      <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <div style="font-family:'Lora',serif;font-size:1.35em;font-weight:700;margin-bottom:10px;">Terima Kasih!</div>
+    <div style="font-size:0.85em;color:var(--slate-2);line-height:1.7;margin-bottom:26px;">
+      Data assessment Anda telah berhasil disimpan.<br>Sampai jumpa di sesi berikutnya.
+    </div>
+    <button class="btn btn-ghost" onclick="location.reload()">Selesai</button>
+  </div>
+</div>
+
+<script>
+const quizData = {
+  PRIBADI: [
+    { title: 'INDIVIDU',  sub: 'Kebahagiaan dan Kesejahteraan Pribadi' },
+    { title: 'RELASI',    sub: 'Keluarga dan Pasangan' },
+    { title: 'SOSIAL',    sub: 'Pekerjaan dan Pergaulan' },
+    { title: 'OVERALL',   sub: 'Hidup Secara Keseluruhan' },
+  ],
+  RELASI: [
+    { title: 'Kebahagiaan Pribadi',        sub: 'Usaha membahagiakan diri sendiri' },
+    { title: 'Komunikasi & Keterbukaan',   sub: 'Usaha berdialog dan membahas masalah' },
+    { title: 'Kehangatan & Keintiman',     sub: 'Usaha mengekspresikan peduli dan sayang' },
+    { title: 'Kebersamaan & Keterlibatan', sub: 'Usaha hadir membantu dan mendukung' },
+    { title: 'Kepercayaan & Keamanan',     sub: 'Usaha menjaga dan menambah rasa percaya' },
+  ],
+};
+
+let currentType  = '';
+let currentClient = '';
+let sesiKe       = 1;
+let codeTimer;
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function setLoading(on) { document.getElementById('loader').classList.toggle('on', on); }
+
+function onCodeInput() {
+  const el  = document.getElementById('clientCode');
+  const row = document.getElementById('statusRow');
+  el.value  = el.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  el.classList.remove('valid','error');
+  row.textContent = ''; row.className = 'status-row';
+  document.getElementById('typeGrid').style.display = 'none';
+  document.getElementById('btnRelasi').style.display = 'none';
+  clearTimeout(codeTimer);
+  if (el.value.length === 8) codeTimer = setTimeout(() => verifyCode(el.value), 420);
+}
+
+async function verifyCode(code) {
+  const el  = document.getElementById('clientCode');
+  const row = document.getElementById('statusRow');
+  row.textContent = 'Memverifikasi…'; row.className = 'status-row loading';
+  try {
+    const res  = await fetch(`/.netlify/functions/api?action=verify&code=${code}`);
+    const data = await res.json();
+    if (data.mode === 'input') {
+      el.classList.add('valid');
+      row.textContent = 'Kode valid ✓'; row.className = 'status-row ok';
+      currentClient = data.type;
+      document.getElementById('typeGrid').style.display = 'flex';
+      if (data.type === 'couple') document.getElementById('btnRelasi').style.display = 'flex';
+      // Auto-detect next session number
+      fetch(`/.netlify/functions/api?action=next_session&code=${code}`)
+        .then(r => r.json())
+        .then(d => { sesiKe = d.next || 1; document.getElementById('sesiNum').textContent = sesiKe; })
+        .catch(() => {});
+    } else {
+      el.classList.add('error');
+      row.textContent = 'Kode tidak ditemukan.'; row.className = 'status-row fail';
+    }
+  } catch {
+    row.textContent = 'Koneksi gagal. Coba lagi.'; row.className = 'status-row fail';
+  }
+}
+
+function adjSesi(d) {
+  sesiKe = Math.max(1, Math.min(99, sesiKe + d));
+  document.getElementById('sesiNum').textContent = sesiKe;
+}
+
+function updateSlider(el) {
+  const pct = ((el.value - el.min) / (el.max - el.min)) * 100;
+  el.style.backgroundSize = pct + '% 100%';
+  const v = el.closest('.slider-row').querySelector('.slider-val');
+  if (v) v.textContent = parseFloat(el.value).toFixed(1);
+}
+
+function startQuiz(type) {
+  currentType = type;
+  const code  = document.getElementById('clientCode').value;
+  document.getElementById('quizTitle').textContent = type === 'PRIBADI' ? 'Assessment Pribadi' : 'Assessment Relasi';
+  document.getElementById('quizSub').textContent   = 'Kode: ' + code;
+
+  const qc = document.getElementById('questions');
+  qc.innerHTML = '';
+  quizData[type].forEach(q => {
+    const card = document.createElement('div');
+    card.className = 'q-card';
+    card.innerHTML = `
+      <div class="q-title">${q.title}</div>
+      <div class="q-sub">${q.sub}</div>
+      <div class="slider-row">
+        <div class="slider-wrap">
+          <input type="range" class="score-input" min="0" max="10" step="0.1" value="0"
+                 aria-label="${q.title}" oninput="updateSlider(this)">
+          <div class="slider-hints"><span>0 — Sangat Rendah</span><span>Sangat Tinggi — 10</span></div>
+        </div>
+        <div class="slider-val" aria-hidden="true">0.0</div>
+      </div>`;
+    qc.appendChild(card);
+    updateSlider(card.querySelector('input'));
+  });
+
+  document.getElementById('progress').style.width = '0%';
+  qc.querySelectorAll('input[type=range]').forEach(el => {
+    el.addEventListener('input', () => {
+      const all     = qc.querySelectorAll('input[type=range]');
+      const touched = Array.from(all).filter(e => parseFloat(e.value) > 0).length;
+      document.getElementById('progress').style.width = (touched / all.length * 100) + '%';
+    });
+  });
+
+  showScreen('s-quiz');
+}
+
+async function submitData() {
+  const btn    = document.getElementById('submitBtn');
+  const code   = document.getElementById('clientCode').value;
+  const inputs = document.querySelectorAll('.score-input');
+  const scores = Array.from(inputs).map(i => parseFloat(i.value));
+  const total  = scores.reduce((a, b) => a + b, 0);
+
+  btn.disabled = true;
+  setLoading(true);
+  try {
+    const res = await fetch('/.netlify/functions/api?action=submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        kode: code,
+        tanggal: new Date().toISOString().split('T')[0],
+        tipe: currentType,
+        sesi: sesiKe,
+        skor1: scores[0] || 0, skor2: scores[1] || 0,
+        skor3: scores[2] || 0, skor4: scores[3] || 0,
+        skor5: scores[4] || 0,
+        total: parseFloat(total.toFixed(1)),
+      }),
+    });
+    const data = await res.json();
+    if (data.success) showScreen('s-thanks');
+    else alert('Gagal menyimpan. Coba lagi.');
+  } catch { alert('Koneksi gagal. Periksa internet Anda.'); }
+  finally { btn.disabled = false; setLoading(false); }
+}
+</script>
+</body>
+</html>
