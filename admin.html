@@ -655,7 +655,7 @@ function toast(msg, dur=2500) {
   setTimeout(() => t.classList.remove('show'), dur);
 }
 
-const API = '/.netlify/functions/api';
+const API = '/api';
 let authToken = localStorage.getItem('sync_token') || '';
 
 async function api(action, method='GET', body=null) {
