@@ -206,13 +206,35 @@ exports.handler = async (event) => {
 
         for (const c of clients) {
           const filter = c.partner_code
-            ? { or: `(client_code.eq.${c.code},client_code.eq.${c.partner_code})`, select: 'session_number,date', order: 'date.desc' }
-            : { client_code: `eq.${c.code}`, select: 'session_number,date', order: 'date.desc' };
-          const sr         = await sb('sessions', 'GET', null, filter);
-          const sessions   = sr.data || [];
-          c.session_count      = sessions.length;
-          c.last_session_date  = sessions[0]?.date || null;
-          c.max_session        = sessions.length ? Math.max(...sessions.map(s => s.session_number)) : 0;
+            ? { or: `(client_code.eq.${c.code},client_code.eq.${c.partner_code})`, select: 'session_number,date,total,client_code', order: 'session_number.asc,client_code.asc' }
+            : { client_code: `eq.${c.code}`, select: 'session_number,date,total,client_code', order: 'session_number.asc' };
+          const sr       = await sb('sessions', 'GET', null, filter);
+          const sessions = sr.data || [];
+          c.session_count     = sessions.length;
+          c.last_session_date = sessions.length ? sessions[sessions.length-1].date : null;
+          c.max_session       = sessions.length ? Math.max(...sessions.map(s => s.session_number)) : 0;
+
+          // ── Score summary per person ─────────────────────────────────────
+          const allCodes = c.partner_code ? [c.code, c.partner_code] : [c.code];
+          c.score_summary = allCodes.map(code => {
+            const ps = sessions.filter(s => s.client_code === code)
+              .sort((a,b) => parseInt(a.session_number)-parseInt(b.session_number));
+            const totals = ps.map(s => parseFloat(s.total)||0);
+            const pcts   = totals.slice(1).map((t,i) =>
+              totals[i] > 0 ? Math.round((t-totals[i])/totals[i]*100) : 0);
+            return { code, latest: totals.length ? totals[totals.length-1] : null, pcts };
+          });
+
+          // ── Combined score for couples ───────────────────────────────────
+          if (c.partner_code) {
+            const ps0 = sessions.filter(s => s.client_code === c.code).sort((a,b) => parseInt(a.session_number)-parseInt(b.session_number));
+            const ps1 = sessions.filter(s => s.client_code === c.partner_code).sort((a,b) => parseInt(a.session_number)-parseInt(b.session_number));
+            const minLen = Math.min(ps0.length, ps1.length);
+            const combined = [];
+            for (let i=0; i<minLen; i++) combined.push((parseFloat(ps0[i].total)||0)+(parseFloat(ps1[i].total)||0));
+            const cPcts = combined.slice(1).map((t,i) => combined[i]>0 ? Math.round((t-combined[i])/combined[i]*100) : 0);
+            c.score_combined = { latest: combined.length ? combined[combined.length-1] : null, pcts: cPcts };
+          }
         }
         return ok(clients);
       }
@@ -283,10 +305,43 @@ exports.handler = async (event) => {
 
         const sr       = await sb('sessions', 'GET', null, filter);
         const sessions = (sr.data || []).map(s => ({
-          kode: s.client_code, tipe: s.type, sesi: s.session_number, tanggal: s.date,
+          id: s.id, kode: s.client_code, tipe: s.type, sesi: s.session_number, tanggal: s.date,
           skor1: s.skor1, skor2: s.skor2, skor3: s.skor3, skor4: s.skor4, skor5: s.skor5, total: s.total,
         }));
         return ok({ success: true, client, sessions });
+      }
+
+      // ── Coach: update session scores ─────────────────────────────────────
+      case 'update_session': {
+        const session = await mustLogin();
+        const sid  = parseInt(body.id);
+        const code = (body.client_code || '').toUpperCase();
+        const cr = await sb('clients', 'GET', null, {
+          or: `(code.eq.${code},partner_code.eq.${code})`,
+          coach_id: `eq.${session.coach_id}`, select: 'id', limit: '1',
+        });
+        if (!cr.data?.length) return err('Forbidden', 403);
+        const s1=parseFloat(body.skor1)||0, s2=parseFloat(body.skor2)||0,
+              s3=parseFloat(body.skor3)||0, s4=parseFloat(body.skor4)||0, s5=parseFloat(body.skor5)||0;
+        const updates = { skor1:s1, skor2:s2, skor3:s3, skor4:s4, skor5:s5, total:s1+s2+s3+s4+s5 };
+        const r = await sb('sessions', 'PATCH', updates, { id: `eq.${sid}` });
+        return ok({ success: r.code===200||r.code===204||r.code===201 });
+      }
+
+      // ── Coach: delete single session ─────────────────────────────────────
+      case 'delete_session': {
+        const session = await mustLogin();
+        const sid = parseInt(body.id);
+        const sr  = await sb('sessions', 'GET', null, { id: `eq.${sid}`, select: 'client_code', limit: '1' });
+        if (!sr.data?.length) return err('Not found', 404);
+        const code = sr.data[0].client_code;
+        const cr = await sb('clients', 'GET', null, {
+          or: `(code.eq.${code},partner_code.eq.${code})`,
+          coach_id: `eq.${session.coach_id}`, select: 'id', limit: '1',
+        });
+        if (!cr.data?.length) return err('Forbidden', 403);
+        await sb('sessions', 'DELETE', null, { id: `eq.${sid}` });
+        return ok({ success: true });
       }
 
       default:

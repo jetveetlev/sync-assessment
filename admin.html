@@ -202,6 +202,22 @@ body { font-family:'Inter',-apple-system,system-ui,sans-serif; background:var(--
 .copied-tip { position:absolute; bottom:calc(100% + 5px); left:50%; transform:translateX(-50%); background:var(--slate); color:white; font-size:0.72em; padding:3px 8px; border-radius:5px; white-space:nowrap; pointer-events:none; opacity:0; transition:opacity 0.15s; }
 .copied-tip.show { opacity:1; }
 
+/* ── Score summary on cards ─────────────────────────────────────────── */
+.score-summary-block { border-top:1px solid #f1f5f9; padding:8px 0 4px; margin-top:2px; display:flex; flex-direction:column; gap:5px; }
+.score-summary-row { display:flex; align-items:center; gap:6px; font-size:0.78em; flex-wrap:wrap; }
+.score-name { color:var(--slate-2); min-width:60px; }
+.score-total { font-weight:700; color:var(--slate); margin-right:2px; }
+.score-combined { border-top:1px dashed #e2e8f0; padding-top:5px; margin-top:2px; font-weight:600; }
+/* ── 4 action icon buttons ──────────────────────────────────────────── */
+.card-actions { display:flex; gap:4px; }
+.icon-action-btn {
+  width:32px; height:32px; border-radius:8px; border:1.5px solid var(--border);
+  background:white; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  color:var(--slate-2); transition:all 0.15s;
+}
+.icon-action-btn:hover { background:var(--teal-xlt); border-color:var(--teal); color:var(--teal); }
+.icon-action-btn.danger:hover { background:#fff1f2; border-color:#fca5a5; color:var(--red); }
+.icon-action-btn svg { width:13px; height:13px; }
 .card-footer { display:flex; align-items:center; justify-content:space-between; margin-top:14px; border-top:1px solid #f1f5f9; padding-top:12px; }
 .session-info { font-size:0.78em; color:var(--slate-2); }
 .session-info strong { color:var(--slate); font-weight:600; }
@@ -227,6 +243,18 @@ body { font-family:'Inter',-apple-system,system-ui,sans-serif; background:var(--
   backdrop-filter:blur(3px);
 }
 .overlay.open { display:flex; }
+/* Edit Data table */
+.edit-table { width:100%; border-collapse:collapse; font-size:0.83em; }
+.edit-table th { background:#f8fafc; color:#64748b; font-weight:600; text-align:left; padding:8px 10px; border-bottom:2px solid #e2e8f0; white-space:nowrap; }
+.edit-table td { padding:7px 8px; border-bottom:1px solid #f1f5f9; vertical-align:middle; }
+.edit-table tr:hover td { background:#fafbfc; }
+.edit-score-inp { width:58px; padding:4px 6px; border:1.5px solid #e2e8f0; border-radius:6px; font-size:0.9em; text-align:center; }
+.edit-score-inp:focus { outline:none; border-color:var(--teal); }
+.edit-total-cell { font-weight:700; color:var(--teal-dk); }
+.edit-del-btn { background:none; border:none; cursor:pointer; color:#f87171; font-size:1.2em; padding:2px 6px; border-radius:6px; }
+.edit-del-btn:hover { background:#fff1f2; }
+.edit-name-chip { font-weight:600; color:var(--slate); }
+.edit-type-chip { font-size:0.78em; font-weight:700; color:#0d9488; background:#ccfbf1; padding:2px 6px; border-radius:20px; margin-right:4px; }
 @media(min-width:600px) { .overlay { align-items:center; } }
 
 .modal {
@@ -352,6 +380,18 @@ body { font-family:'Inter',-apple-system,system-ui,sans-serif; background:var(--
 .chart-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(380px,1fr)); gap:20px; margin-bottom:20px; }
 .chart-card { background:white; border:1.5px solid var(--border); border-radius:var(--radius); padding:22px; min-height:320px; box-shadow:var(--shadow); }
 
+/* Pertumbuhan Total Skor bar */
+.growth-bar-wrap { background:#f0fdf4; border:1.5px solid #bbf7d0; border-radius:10px; padding:14px 16px; margin-bottom:14px; }
+.growth-bar-title { font-size:0.72em; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:#0d9488; margin-bottom:10px; }
+.growth-bar-row { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+.growth-bar-row:last-child { margin-bottom:0; }
+.growth-name { font-size:0.78em; font-weight:700; color:#0f172a; min-width:60px; flex-shrink:0; }
+.growth-track { display:flex; align-items:center; flex:1; overflow-x:auto; }
+.growth-milestone { display:flex; flex-direction:column; align-items:center; gap:2px; flex-shrink:0; }
+.growth-dot { width:12px; height:12px; border-radius:50%; background:white; border:2.5px solid #0d9488; }
+.growth-lbl { font-size:0.72em; font-weight:800; white-space:nowrap; }
+.growth-sesi { font-size:0.62em; color:#94a3b8; }
+.growth-line { flex:1; height:2px; background:#d1fae5; min-width:20px; margin-bottom:18px; }
 /* Heatmap */
 .heatmap-card { background:white; border:1.5px solid var(--border); border-radius:var(--radius); padding:22px; margin-bottom:20px; box-shadow:var(--shadow); }
 .heatmap-title { font-weight:700; font-size:0.9em; color:var(--slate); margin-bottom:16px; }
@@ -538,6 +578,21 @@ body { font-family:'Inter',-apple-system,system-ui,sans-serif; background:var(--
     <div style="color:var(--slate-2);font-size:0.85em;margin-bottom:16px;line-height:1.6;">Bagikan kode ini kepada client Anda. Mereka akan menggunakannya untuk mengisi assessment.</div>
     <div class="success-codes" id="successCodes"></div>
     <button class="btn btn-teal" onclick="closeSuccessModal()">Selesai</button>
+  </div>
+</div>
+
+<!-- ══════════════════ EDIT DATA MODAL ══════════════════ -->
+<div class="overlay" id="editDataModal" onclick="if(event.target===this) closeEditData()">
+  <div class="modal" style="max-width:780px;width:95%;max-height:85vh;display:flex;flex-direction:column;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-shrink:0;">
+      <div class="modal-title" id="editDataTitle">Edit Data</div>
+      <button onclick="closeEditData()" style="background:none;border:none;cursor:pointer;font-size:1.3em;color:#94a3b8;">×</button>
+    </div>
+    <div id="editDataBody" style="overflow-y:auto;flex:1;"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;padding-top:12px;border-top:1px solid #f1f5f9;flex-shrink:0;">
+      <button class="btn btn-ghost" onclick="closeEditData()">Batal</button>
+      <button class="btn btn-teal" id="saveEditBtn" onclick="saveEditData()">Simpan Perubahan</button>
+    </div>
   </div>
 </div>
 
@@ -736,6 +791,22 @@ function renderClients() {
     const displayName = isCouple ? `${c.name} & ${c.partner_name}` : c.name;
     const phone = isCouple && c.partner_phone ? `${c.phone||'—'} · ${c.partner_phone}` : (c.phone||'—');
 
+    // ── Score summary rows ────────────────────────────────────────────────
+    const scoreName1 = c.name;
+    const scoreName2 = c.partner_name || '';
+    const ss = c.score_summary || [];
+    const fmtPcts = pcts => pcts.map(p => `<span style="color:${p>=0?'#0d9488':'#e11d48'};font-weight:700">${p>=0?'+':''}${p}%</span>`).join(' ');
+    const scoreRowsHtml = ss.map((s,i) => {
+      if (s.latest === null) return '';
+      const nm = i===0 ? scoreName1 : scoreName2;
+      return `<div class="score-summary-row"><span class="score-name">${nm}:</span><span class="score-total">${parseFloat(s.latest).toFixed(1)}</span>${fmtPcts(s.pcts)}</div>`;
+    }).join('');
+    const combinedHtml = c.score_combined && c.score_combined.latest !== null
+      ? `<div class="score-summary-row score-combined"><span class="score-name">Gabungan:</span><span class="score-total">${parseFloat(c.score_combined.latest).toFixed(1)}</span>${fmtPcts(c.score_combined.pcts)}</div>`
+      : '';
+    const scoreBlockHtml = (scoreRowsHtml||combinedHtml)
+      ? `<div class="score-summary-block" onclick="event.stopPropagation()">${scoreRowsHtml}${combinedHtml}</div>` : '';
+
     return `<div class="client-card" onclick="openDash(${c.id})">
       <div class="client-card-top">
         <div style="display:flex;gap:10px;align-items:center;">
@@ -748,18 +819,23 @@ function renderClients() {
         <span class="type-badge ${isCouple?'badge-couple':'badge-single'}">${isCouple?'Pasangan':'Pribadi'}</span>
       </div>
       <div class="code-row" onclick="event.stopPropagation()">${codesHtml}</div>
+      ${scoreBlockHtml}
       <div class="card-footer">
         <div class="session-info">
           <strong>${c.max_session||0}</strong> sesi · Terakhir ${lastDate}
         </div>
-        <div style="display:flex;gap:6px;" onclick="event.stopPropagation()">
-          <button class="view-btn" style="color:var(--red);border-color:#fecaca;padding:0 10px;" title="Hapus client"
-                  onclick="confirmDelete(${c.id},'${displayName.replace(/'/g,"\\'")}')">
-            <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+        <div class="card-actions" onclick="event.stopPropagation()">
+          <button class="icon-action-btn" title="Dashboard" onclick="openDash(${c.id})">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
           </button>
-          <button class="view-btn" onclick="openDash(${c.id})">
-            Lihat
-            <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+          <button class="icon-action-btn" title="Client Report" onclick="openClientReportById(${c.id})">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+          <button class="icon-action-btn" title="Edit Data" onclick="openEditData(${c.id})">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="icon-action-btn danger" title="Hapus client" onclick="confirmDelete(${c.id},'${displayName.replace(/'/g,"\\'")}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
           </button>
         </div>
       </div>
@@ -1173,6 +1249,128 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f0fdfa;color:#0f172a;p
   const w = window.open('', '_blank');
   w.document.write(html);
   w.document.close();
+}
+
+// ══════════════════════════════════════════════════════════
+//   OPEN CLIENT REPORT FROM CARD (without opening dashboard)
+// ══════════════════════════════════════════════════════════
+async function openClientReportById(clientId) {
+  try {
+    const d = await api(`client_data&id=${clientId}`);
+    if (!d.success) { toast('Gagal memuat data.'); return; }
+    const nameMap = {};
+    nameMap[d.client.code.slice(0,2)] = d.client.name;
+    if (d.client.partner_code) nameMap[d.client.partner_code.slice(0,2)] = d.client.partner_name;
+    window._dashState = { sessions: d.sessions, client: d.client, nameMap };
+    openClientReport();
+  } catch { toast('Gagal memuat data.'); }
+}
+
+// ══════════════════════════════════════════════════════════
+//   EDIT DATA
+// ══════════════════════════════════════════════════════════
+let _editClientId = null;
+let _editSessions = [];
+let _editClient   = null;
+
+async function openEditData(clientId) {
+  _editClientId = clientId;
+  const modal = document.getElementById('editDataModal');
+  modal.classList.add('open');
+  document.getElementById('editDataBody').innerHTML = '<div style="text-align:center;padding:40px;color:#64748b;">Memuat data...</div>';
+  try {
+    const d = await api(`client_data&id=${clientId}`);
+    if (!d.success) { document.getElementById('editDataBody').innerHTML = '<div style="padding:20px;color:red;">Gagal memuat.</div>'; return; }
+    _editClient   = d.client;
+    _editSessions = d.sessions;
+    renderEditTable();
+  } catch { document.getElementById('editDataBody').innerHTML = '<div style="padding:20px;color:red;">Error.</div>'; }
+}
+
+function renderEditTable() {
+  const c = _editClient;
+  const isCouple = c.type === 'couple';
+  const nameMap = {};
+  nameMap[c.code.slice(0,2)] = c.name;
+  if (isCouple && c.partner_code) nameMap[c.partner_code.slice(0,2)] = c.partner_name;
+  const chartCfgLocal = { PRIBADI: ['INDIVIDU','RELASI','SOSIAL','OVERALL'], RELASI: ['Kebahagiaan Pribadi','Komunikasi & Keterbukaan','Kehangatan & Keintiman','Kebersamaan & Keterlibatan','Kepercayaan & Keamanan'] };
+  document.getElementById('editDataTitle').textContent = `Edit Data — ${isCouple ? c.name+' & '+c.partner_name : c.name}`;
+
+  const rows = _editSessions.map(s => {
+    const labels = chartCfgLocal[s.tipe] || ['S1','S2','S3','S4','S5'];
+    const nama = nameMap[s.kode.slice(0,2)] || s.kode;
+    const skorInputs = [1,2,3,4,5].map(i =>
+      `<td><input class="edit-score-inp" type="number" min="0" max="10" step="0.1" value="${parseFloat(s[`skor${i}`])||0}" data-id="${s.id}" data-field="skor${i}" onchange="onEditScoreChange(this)"></td>`
+    ).join('');
+    return `<tr data-id="${s.id}">
+      <td><span class="edit-name-chip">${nama}</span></td>
+      <td><span class="edit-type-chip">${s.tipe}</span> Sesi ${s.sesi}</td>
+      ${skorInputs}
+      <td class="edit-total-cell" id="etotal_${s.id}">${parseFloat(s.total).toFixed(1)}</td>
+      <td><button class="edit-del-btn" onclick="deleteEditSession(${s.id})" title="Hapus sesi ini">×</button></td>
+    </tr>`;
+  }).join('');
+
+  const maxLabels = Math.max(..._editSessions.map(s => (chartCfgLocal[s.tipe]||[]).length));
+  document.getElementById('editDataBody').innerHTML = `
+    <table class="edit-table">
+      <thead><tr>
+        <th>Nama</th><th>Tipe - Sesi</th>
+        <th>S1</th><th>S2</th><th>S3</th><th>S4</th><th>S5</th>
+        <th>Total</th><th>Aksi</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function onEditScoreChange(inp) {
+  const id = parseInt(inp.dataset.id);
+  const field = inp.dataset.field;
+  const s = _editSessions.find(x => x.id === id);
+  if (!s) return;
+  s[field] = parseFloat(inp.value)||0;
+  const total = [1,2,3,4,5].reduce((acc,i) => acc + (parseFloat(s[`skor${i}`])||0), 0);
+  s.total = total;
+  const cell = document.getElementById(`etotal_${id}`);
+  if (cell) cell.textContent = total.toFixed(1);
+}
+
+async function deleteEditSession(sessionId) {
+  if (!confirm('Hapus sesi ini? Data tidak bisa dikembalikan.')) return;
+  try {
+    const r = await api('delete_session', { id: sessionId, client_code: _editSessions.find(s=>s.id===sessionId)?.kode || '' });
+    if (r.success) {
+      _editSessions = _editSessions.filter(s => s.id !== sessionId);
+      renderEditTable();
+      toast('Sesi dihapus.');
+    } else { toast('Gagal menghapus.'); }
+  } catch { toast('Error.'); }
+}
+
+async function saveEditData() {
+  const btn = document.getElementById('saveEditBtn');
+  btn.disabled = true; btn.textContent = 'Menyimpan...';
+  try {
+    let ok = true;
+    for (const s of _editSessions) {
+      const r = await api('update_session', {
+        id: s.id, client_code: s.kode,
+        skor1: s.skor1, skor2: s.skor2, skor3: s.skor3, skor4: s.skor4, skor5: s.skor5, total: s.total,
+      });
+      if (!r.success) { ok = false; }
+    }
+    if (ok) {
+      toast('Data berhasil disimpan!');
+      closeEditData();
+      await loadClients();
+    } else { toast('Beberapa data gagal disimpan.'); }
+  } catch { toast('Error saat menyimpan.'); }
+  finally { btn.disabled = false; btn.textContent = 'Simpan Perubahan'; }
+}
+
+function closeEditData() {
+  document.getElementById('editDataModal').classList.remove('open');
+  _editClientId = null; _editSessions = []; _editClient = null;
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1685,7 +1883,29 @@ function generateInsights(data, type, initials, containerId, nameMap) {
     }
   }
 
-  let html = `<div class="insight-box"><div class="insight-box-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#166534" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Progress Insights</div><div class="insight-grid">`;
+  // ── Pertumbuhan Total Skor visual ───────────────────────────────────────
+  let growthBarHtml = '';
+  initials.forEach(ini => {
+    const ds = cData[ini];
+    if (!ds || ds.length < 2) return;
+    const base = parseFloat(ds[0].total)||0;
+    const milestones = ds.map((d,i) => {
+      const t = parseFloat(d.total)||0;
+      const pct = base > 0 ? Math.round((t-base)/base*100) : 0;
+      return { sesi: d.sesi||i+1, total: t, pct };
+    });
+    const maxPct = Math.max(...milestones.map(m=>Math.abs(m.pct)), 1);
+    const dname = nameMap[ini] || ini;
+    const dots = milestones.map(m => {
+      const color = m.pct > 0 ? '#0d9488' : m.pct < 0 ? '#e11d48' : '#94a3b8';
+      const label = m.pct === 0 ? '0' : (m.pct > 0 ? `+${m.pct}%` : `${m.pct}%`);
+      return `<div class="growth-milestone"><div class="growth-dot" style="border-color:${color};"></div><div class="growth-lbl" style="color:${color};">${label}</div><div class="growth-sesi">Sesi ${m.sesi}</div></div>`;
+    }).join('<div class="growth-line"></div>');
+    growthBarHtml += `<div class="growth-bar-row"><span class="growth-name">${dname}:</span><div class="growth-track">${dots}</div></div>`;
+  });
+  const growthSection = growthBarHtml ? `<div class="growth-bar-wrap"><div class="growth-bar-title">Pertumbuhan Total Skor (Sejak Sesi 1)</div>${growthBarHtml}</div>` : '';
+
+  let html = `<div class="insight-box"><div class="insight-box-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#166534" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Progress Insights</div>${growthSection}<div class="insight-grid">`;
   if (gWin)  html += `<div class="insight-group"><div class="insight-group-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg> Kemenangan Sesi Ini</div><ul class="insight-list">${gWin}</ul></div>`;
   if (gPola) html += `<div class="insight-group"><div class="insight-group-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg> Pola & Fondasi</div><ul class="insight-list">${gPola}</ul></div>`;
   if (gDyn)  html += `<div class="insight-group"><div class="insight-group-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> Dinamika Pasangan</div><ul class="insight-list">${gDyn}</ul></div>`;
