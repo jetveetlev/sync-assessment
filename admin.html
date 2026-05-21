@@ -414,6 +414,10 @@ body { font-family:'Inter',-apple-system,system-ui,sans-serif; background:var(--
 .insight-list { margin:0; padding-left:18px; color:#166534; font-size:0.82em; line-height:1.7; }
 .insight-list li { margin-bottom:6px; }
 .no-insight { color:#15803d; font-size:0.83em; font-style:italic; }
+.insight-group-attn { background:white; border-radius:var(--radius-sm); padding:16px; border:1px solid #fecdd3; }
+.insight-ttl-attn { font-weight:700; color:#be123c; font-size:0.85em; margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+.insight-list-attn { margin:0; padding-left:18px; color:#9f1239; font-size:0.82em; line-height:1.7; }
+.insight-list-attn li { margin-bottom:6px; }
 
 /* Loading / error states */
 .dash-loading { text-align:center; padding:60px 20px; color:var(--slate-2); }
@@ -1035,53 +1039,60 @@ function openPrintReport() {
     });
   });
 
-  // ── Build Progress Insights ────────────────────────────────────────────
+  // ── Build Progress Insights (comprehensive) ───────────────────────────
   const rptInits = [...new Set(sessions.map(d => d.kode.slice(0,2)))];
   const maxSesiOverall = getMaxSesi(sessions);
-  let gWin='', gPola='', gDyn='', gProj='';
+  let gWin='', gPola='', gDyn='', gAttnP='', gProj='';
 
   rptInits.forEach(ini => {
     const ds = sessions.filter(d => d.kode.slice(0,2)===ini).sort((a,b) => parseInt(a.sesi)-parseInt(b.sesi));
     if (ds.length < 2) return;
     const dname = nameMap[ini] || ini;
-    const first = ds[0], last = ds[ds.length-1], prev = ds[ds.length-2];
-    const labels = chartCfg[last.tipe] || [];
+    const types = [...new Set(ds.map(d=>d.tipe))];
 
-    // Biggest gain from first session
-    let maxDi=-1, maxD=0;
-    labels.forEach((_,i) => { const d=parseFloat(last[`skor${i+1}`])-parseFloat(first[`skor${i+1}`]); if(d>maxD){maxD=d;maxDi=i;} });
-    if (maxDi!==-1) gWin += `<li><b>Apresiasi Besar (${dname}):</b> Area <b>${labels[maxDi]}</b> meningkat <b>+${maxD.toFixed(1)}</b> poin sejak awal.</li>`;
+    types.forEach(type => {
+      const tds=ds.filter(d=>d.tipe===type);
+      if(tds.length<2) return;
+      const tf=tds[0],tl=tds[tds.length-1],tp=tds[tds.length-2];
+      const lbls=chartCfg[type]||[];
 
-    // Micro wins from last session
-    const wins = [];
-    labels.forEach((_,i) => { const d=parseFloat(last[`skor${i+1}`])-parseFloat(prev[`skor${i+1}`]); if(d>0) wins.push({label:labels[i],delta:d}); });
-    if (wins.length===1) gWin += `<li><b>Langkah Kecil (${dname}):</b> Naik di <b>${wins[0].label}</b> sesi ini.</li>`;
-    else if (wins.length>=2) {
-      gWin  += `<li><b>Kemajuan (${dname}):</b> Peningkatan pada <b>${wins[0].label}</b> dan <b>${wins[1].label}</b> sesi ini.</li>`;
-      gPola += `<li><b>Efek Domino (${dname}):</b> Usaha di <b>${wins[0].label}</b> berdampak positif pada <b>${wins[1].label}</b>.</li>`;
-    }
+      const aStats=lbls.map((lbl,i)=>{
+        const f=parseFloat(tf[`skor${i+1}`]),l=parseFloat(tl[`skor${i+1}`]),p=parseFloat(tp[`skor${i+1}`]);
+        const delta=l-f,deltaPrev=l-p;
+        const pctFirst=f>0?((delta/f)*100):0;
+        const avg=tds.reduce((acc,v)=>acc+parseFloat(v[`skor${i+1}`]),0)/tds.length;
+        let trend='stable';
+        if(tds.length>=3){const s3=tds.slice(-3).map(v=>parseFloat(v[`skor${i+1}`]));if(s3[1]>s3[0]&&s3[2]>s3[1])trend='rising';else if(s3[1]<s3[0]&&s3[2]<s3[1])trend='falling';else if(s3[2]>s3[1]&&s3[1]<s3[0])trend='recovered';else if(s3[2]<s3[1]&&s3[1]>s3[0])trend='peaked';}
+        return{lbl,f,l,p,delta,deltaPrev,pctFirst,avg,trend};
+      });
 
-    // Leverage
-    labels.forEach((l,i) => {
-      const d=parseFloat(last[`skor${i+1}`])-parseFloat(prev[`skor${i+1}`]);
-      const dt=parseFloat(last.total)-parseFloat(prev.total);
-      if(d>0 && d<=1.0 && dt>=2.5) gWin += `<li><b>Daya Ungkit (${dname}):</b> Perubahan kecil pada <b>${l}</b> mendongkrak total +${dt.toFixed(1)}.</li>`;
+      const improved=aStats.filter(a=>a.delta>0).sort((a,b)=>b.delta-a.delta);
+      const declined=aStats.filter(a=>a.delta<0).sort((a,b)=>a.delta-b.delta);
+      const stableA=aStats.filter(a=>a.delta===0);
+      const recentW=aStats.filter(a=>a.deltaPrev>0).sort((a,b)=>b.deltaPrev-a.deltaPrev);
+
+      improved.forEach((a,idx)=>{
+        const p=a.pctFirst!==0?` (↑${a.pctFirst.toFixed(0)}%)`:'';
+        if(idx===0) gWin+=`<li><b>Terbesar (${dname}·${type}):</b> <b>${a.lbl}</b> +${a.delta.toFixed(1)} poin${p}.</li>`;
+        else gWin+=`<li><b>${dname} — ${a.lbl}:</b> Naik +${a.delta.toFixed(1)} poin${p}.</li>`;
+      });
+      if(recentW.length===1) gWin+=`<li><b>Sesi Ini (${dname}):</b> Naik di <b>${recentW[0].lbl}</b> +${recentW[0].deltaPrev.toFixed(1)}.</li>`;
+      else if(recentW.length>=2) gWin+=`<li><b>Sesi Ini (${dname}):</b> <b>${recentW[0].lbl}</b> (+${recentW[0].deltaPrev.toFixed(1)}) & <b>${recentW[1].lbl}</b> (+${recentW[1].deltaPrev.toFixed(1)}).</li>`;
+
+      const byAvg=[...aStats].sort((a,b)=>b.avg-a.avg);
+      gPola+=`<li><b>Fondasi Terkuat (${dname}·${type}):</b> <b>${byAvg[0].lbl}</b> — rata-rata ${byAvg[0].avg.toFixed(1)}.</li>`;
+      gPola+=`<li><b>Area Prioritas (${dname}·${type}):</b> <b>${byAvg[byAvg.length-1].lbl}</b> — rata-rata ${byAvg[byAvg.length-1].avg.toFixed(1)}.</li>`;
+      if(recentW.length>=2) gPola+=`<li><b>Efek Domino (${dname}):</b> ${recentW[0].lbl} → ${recentW[1].lbl}.</li>`;
+      stableA.forEach(a=>gPola+=`<li><b>Konsisten (${dname}) — ${a.lbl}:</b> Stabil di ${a.l.toFixed(1)}.</li>`);
+      if(type==='RELASI'){const dsc=parseFloat(tl.skor1)-parseFloat(tp.skor1),dt=parseFloat(tl.total)-parseFloat(tp.total);if(dsc>0&&dt>0)gPola+=`<li><b>Self-Care (${dname}):</b> Merawat Kebahagiaan Pribadi meningkatkan kualitas relasi.</li>`;}
+
+      if(tds.length>=3){aStats.forEach(a=>{if(a.trend==='rising')gProj+=`<li><b>Tren Naik (${dname}) — ${a.lbl}:</b> Konsisten meningkat 3 sesi berturut-turut.</li>`;if(a.trend==='recovered')gPola+=`<li><b>Pemulihan (${dname}) — ${a.lbl}:</b> Sempat turun, naik kembali.</li>`;if(a.trend==='peaked')gAttnP+=`<li><b>Perlu Dijaga (${dname}) — ${a.lbl}:</b> Ada koreksi setelah puncak.</li>`;if(a.trend==='falling')gAttnP+=`<li><b>Tren Turun (${dname}) — ${a.lbl}:</b> Turun 3 sesi berturut-turut.</li>`;});}
+      declined.forEach(a=>{const p=a.pctFirst!==0?` (${a.pctFirst.toFixed(0)}%)`:'';gAttnP+=`<li><b>${dname} — ${a.lbl}:</b> Turun ${a.delta.toFixed(1)} poin${p} sejak sesi pertama.</li>`;});
+
+      const lt=parseFloat(tl.total),pt=parseFloat(tp.total);
+      if(lt>pt){gProj+=`<li><b>Momentum (${dname}·${type}):</b> Total naik ${((lt-pt)/pt*100).toFixed(1)}% dari sesi sebelumnya.</li>`;}
+      else if(lt<pt){gAttnP+=`<li><b>Koreksi (${dname}·${type}):</b> Total turun ${((pt-lt)/pt*100).toFixed(1)}% dari sesi sebelumnya.</li>`;}
     });
-
-    // Self-care (RELASI)
-    if (last.tipe==='RELASI') {
-      const ds2=parseFloat(last.skor1)-parseFloat(prev.skor1), dt=parseFloat(last.total)-parseFloat(prev.total);
-      if(ds2>0 && dt>0) gPola += `<li><b>Self-Care (${dname}):</b> Merawat <b>Kebahagiaan Pribadi</b> turut meningkatkan kualitas relasi!</li>`;
-    }
-
-    // Strongest area (no absolute number)
-    let maxA=-1, maxAi=-1;
-    labels.forEach((_,i) => { const avg=ds.reduce((s,x)=>s+parseFloat(x[`skor${i+1}`]),0)/ds.length; if(avg>maxA){maxA=avg;maxAi=i;} });
-    if (maxAi!==-1) gPola += `<li><b>Fondasi Utama (${dname}):</b> <b>${labels[maxAi]}</b> adalah kekuatan terkuat.</li>`;
-
-    // Momentum
-    const lt=parseFloat(last.total), pt=parseFloat(prev.total);
-    if(lt>pt) { const pct=((lt-pt)/pt*100).toFixed(1); gProj += `<li><b>Momentum (${dname}):</b> Tumbuh <b>${pct}%</b> dari sesi sebelumnya.</li>`; }
   });
 
   // Couple dynamics
@@ -1095,18 +1106,24 @@ function openPrintReport() {
       chartCfg['RELASI'].forEach((lbl,i)=>{
         const d1=parseFloat(l1[`skor${i+1}`])-parseFloat(p1[`skor${i+1}`]);
         const d2=parseFloat(l2[`skor${i+1}`])-parseFloat(p2[`skor${i+1}`]);
-        if(d1>0&&d2>0) gDyn += `<li><b>Kerja Sama Solid:</b> Keduanya (${n1} & ${n2}) sama-sama meningkat di <b>${lbl}</b>.</li>`;
+        if(d1>0&&d2>0) gDyn+=`<li><b>Kerja Sama Solid — ${lbl}:</b> ${n1} & ${n2} sama-sama meningkat.</li>`;
+        else if(d1>0&&d2<=0) gDyn+=`<li><b>Asimetri — ${lbl}:</b> ${n1} naik, ${n2} belum.</li>`;
+        else if(d2>0&&d1<=0) gDyn+=`<li><b>Asimetri — ${lbl}:</b> ${n2} naik, ${n1} belum.</li>`;
       });
+      const gaps=chartCfg['RELASI'].map((l,i)=>({l,gap:Math.abs(parseFloat(l1[`skor${i+1}`])-parseFloat(l2[`skor${i+1}`]))}));
+      const mg=gaps.sort((a,b)=>b.gap-a.gap)[0];
+      if(mg.gap>=1.5) gDyn+=`<li><b>Gap Terbesar — ${mg.l}:</b> Selisih ${mg.gap.toFixed(1)} poin antara ${n1} & ${n2}.</li>`;
     }
   }
 
-  const insightsHtml = (gWin||gPola||gDyn||gProj) ? `
+  const insightsHtml = (gWin||gPola||gDyn||gAttnP||gProj) ? `
     <div class="section">
       <div class="section-title">Progress Insights</div>
-      ${gWin  ? `<div class="insight-grp"><div class="insight-ttl">Kemenangan Sesi Ini</div><ul class="insight-ul">${gWin}</ul></div>` : ''}
-      ${gPola ? `<div class="insight-grp"><div class="insight-ttl">Pola & Fondasi</div><ul class="insight-ul">${gPola}</ul></div>` : ''}
-      ${gDyn  ? `<div class="insight-grp"><div class="insight-ttl">Dinamika Pasangan</div><ul class="insight-ul">${gDyn}</ul></div>` : ''}
-      ${gProj ? `<div class="insight-grp"><div class="insight-ttl">Melihat ke Depan</div><ul class="insight-ul">${gProj}</ul></div>` : ''}
+      ${gWin   ? `<div class="insight-grp"><div class="insight-ttl">Kemenangan & Kemajuan</div><ul class="insight-ul">${gWin}</ul></div>` : ''}
+      ${gPola  ? `<div class="insight-grp"><div class="insight-ttl">Pola & Fondasi</div><ul class="insight-ul">${gPola}</ul></div>` : ''}
+      ${gDyn   ? `<div class="insight-grp"><div class="insight-ttl">Dinamika Pasangan</div><ul class="insight-ul">${gDyn}</ul></div>` : ''}
+      ${gProj  ? `<div class="insight-grp"><div class="insight-ttl">Melihat ke Depan</div><ul class="insight-ul">${gProj}</ul></div>` : ''}
+      ${gAttnP ? `<div class="insight-grp" style="background:#fff1f2;border-radius:10px;padding:12px 14px;border:1px solid #fecdd3"><div class="insight-ttl" style="color:#be123c">Perlu Perhatian</div><ul class="insight-ul" style="color:#9f1239">${gAttnP}</ul></div>` : ''}
     </div>` : '';
 
   // ── Highlight cards (TOP GROWTH + TOP RESILIENT per person) ────────────
@@ -1450,39 +1467,58 @@ function openClientReport() {
         </div>
       </div>`).join('') || '<p style="color:#64748b;text-align:center;padding:16px 0;">Belum ada area yang meningkat.</p>';
 
-  // ── Progress Insights (delta/% only, no absolute scores) ─────────────
-  let gWin='', gPola='', gDyn='', gProj='';
+  // ── Progress Insights (comprehensive) ────────────────────────────────
+  let gWin='', gPola='', gDyn='', gAttnR='', gProj='';
   rInits.forEach(ini => {
     const ds = sessions.filter(d => d.kode.slice(0,2)===ini).sort((a,b) => parseInt(a.sesi)-parseInt(b.sesi));
     if (ds.length < 2) return;
     const dname = nameMap[ini] || ini;
     const first = ds[0], last = ds[ds.length-1], prev = ds[ds.length-2];
-    const labels = chartCfg[last.tipe] || [];
+    const types = [...new Set(ds.map(d=>d.tipe))];
 
-    let maxDi=-1, maxD=0;
-    labels.forEach((_,i) => { const d=parseFloat(last[`skor${i+1}`])-parseFloat(first[`skor${i+1}`]); if(d>maxD){maxD=d;maxDi=i;} });
-    if (maxDi!==-1) gWin += `<li><b>${dname}</b> meningkat paling besar di area <b>${labels[maxDi]}</b> (+${maxD.toFixed(1)}).</li>`;
+    types.forEach(type => {
+      const tds = ds.filter(d=>d.tipe===type);
+      if (tds.length < 2) return;
+      const tf=tds[0], tl=tds[tds.length-1], tp=tds[tds.length-2];
+      const lbls = chartCfg[type] || [];
 
-    const wins=[];
-    labels.forEach((_,i) => { const d=parseFloat(last[`skor${i+1}`])-parseFloat(prev[`skor${i+1}`]); if(d>0) wins.push({label:labels[i],delta:d}); });
-    if (wins.length>=2) {
-      gWin  += `<li><b>${dname}</b> naik di <b>${wins[0].label}</b> dan <b>${wins[1].label}</b> sesi ini.</li>`;
-      gPola += `<li>Usaha di <b>${wins[0].label}</b> berdampak positif pada <b>${wins[1].label}</b> (${dname}).</li>`;
-    }
-    labels.forEach((l,i) => {
-      const d=parseFloat(last[`skor${i+1}`])-parseFloat(prev[`skor${i+1}`]);
-      const dt=parseFloat(last.total)-parseFloat(prev.total);
-      if(d>0 && d<=1.0 && dt>=2.5) gWin += `<li>Perubahan kecil di <b>${l}</b> memberikan dampak besar bagi <b>${dname}</b>.</li>`;
+      const aStats = lbls.map((lbl,i) => {
+        const f=parseFloat(tf[`skor${i+1}`]), l=parseFloat(tl[`skor${i+1}`]), p=parseFloat(tp[`skor${i+1}`]);
+        const delta=l-f, deltaPrev=l-p;
+        const pctFirst=f>0?((delta/f)*100):0, pctPrev=p>0?((deltaPrev/p)*100):0;
+        const avg=tds.reduce((acc,v)=>acc+parseFloat(v[`skor${i+1}`]),0)/tds.length;
+        let trend='stable';
+        if(tds.length>=3){const s3=tds.slice(-3).map(v=>parseFloat(v[`skor${i+1}`]));if(s3[1]>s3[0]&&s3[2]>s3[1])trend='rising';else if(s3[1]<s3[0]&&s3[2]<s3[1])trend='falling';else if(s3[2]>s3[1]&&s3[1]<s3[0])trend='recovered';else if(s3[2]<s3[1]&&s3[1]>s3[0])trend='peaked';}
+        return {lbl,f,l,p,delta,deltaPrev,pctFirst,pctPrev,avg,trend};
+      });
+
+      const improved=aStats.filter(a=>a.delta>0).sort((a,b)=>b.delta-a.delta);
+      const declined=aStats.filter(a=>a.delta<0).sort((a,b)=>a.delta-b.delta);
+      const stableA =aStats.filter(a=>a.delta===0);
+      const recentW =aStats.filter(a=>a.deltaPrev>0).sort((a,b)=>b.deltaPrev-a.deltaPrev);
+
+      improved.forEach((a,idx)=>{
+        const p=a.pctFirst!==0?` (↑${a.pctFirst.toFixed(0)}%)`:'';
+        if(idx===0) gWin+=`<li><b>Kemajuan Terbesar (${dname}·${type}):</b> <b>${a.lbl}</b> +${a.delta.toFixed(1)} poin${p}.</li>`;
+        else gWin+=`<li><b>${dname} — ${a.lbl}:</b> Naik +${a.delta.toFixed(1)} poin${p} sejak sesi pertama.</li>`;
+      });
+      if(recentW.length===1) gWin+=`<li><b>Langkah Sesi Ini (${dname}):</b> Naik di <b>${recentW[0].lbl}</b> +${recentW[0].deltaPrev.toFixed(1)}.</li>`;
+      else if(recentW.length>=2) gWin+=`<li><b>Kemajuan Sesi Ini (${dname}):</b> <b>${recentW[0].lbl}</b> (+${recentW[0].deltaPrev.toFixed(1)}) dan <b>${recentW[1].lbl}</b> (+${recentW[1].deltaPrev.toFixed(1)}).</li>`;
+
+      const byAvg=[...aStats].sort((a,b)=>b.avg-a.avg);
+      gPola+=`<li><b>Fondasi Terkuat (${dname}·${type}):</b> <b>${byAvg[0].lbl}</b> — rata-rata ${byAvg[0].avg.toFixed(1)}.</li>`;
+      gPola+=`<li><b>Area Prioritas (${dname}·${type}):</b> <b>${byAvg[byAvg.length-1].lbl}</b> — rata-rata terendah ${byAvg[byAvg.length-1].avg.toFixed(1)}.</li>`;
+      if(recentW.length>=2) gPola+=`<li><b>Efek Domino (${dname}):</b> Usaha di <b>${recentW[0].lbl}</b> berdampak pada <b>${recentW[1].lbl}</b>.</li>`;
+      stableA.forEach(a=>gPola+=`<li><b>Konsisten (${dname}) — ${a.lbl}:</b> Stabil di semua sesi (${a.l.toFixed(1)}).</li>`);
+      if(type==='RELASI'){const dsc=parseFloat(tl.skor1)-parseFloat(tp.skor1),dt=parseFloat(tl.total)-parseFloat(tp.total);if(dsc>0&&dt>0)gPola+=`<li><b>Self-Care (${dname}):</b> Merawat <b>Kebahagiaan Pribadi</b> turut meningkatkan kualitas relasi!</li>`;}
+
+      if(tds.length>=3){aStats.forEach(a=>{if(a.trend==='rising')gProj+=`<li><b>Tren Naik (${dname}) — ${a.lbl}:</b> Meningkat konsisten 3 sesi berturut-turut!</li>`;if(a.trend==='recovered')gPola+=`<li><b>Pemulihan (${dname}) — ${a.lbl}:</b> Sempat turun, berhasil naik kembali.</li>`;if(a.trend==='peaked')gAttnR+=`<li><b>Perlu Dijaga (${dname}) — ${a.lbl}:</b> Sempat naik, ada koreksi sesi ini.</li>`;if(a.trend==='falling')gAttnR+=`<li><b>Tren Turun (${dname}) — ${a.lbl}:</b> Turun 3 sesi berturut-turut.</li>`;});}
+      declined.forEach(a=>{const p=a.pctFirst!==0?` (${a.pctFirst.toFixed(0)}%)`:'';gAttnR+=`<li><b>${dname} — ${a.lbl}:</b> Turun ${a.delta.toFixed(1)} poin${p} sejak sesi pertama.</li>`;});
+
+      const lt=parseFloat(tl.total),pt=parseFloat(tp.total);
+      if(lt>pt){const pct=((lt-pt)/pt*100).toFixed(1);gProj+=`<li><b>Momentum (${dname}·${type}):</b> Total naik <b>${pct}%</b> dari sesi sebelumnya.</li>`;}
+      else if(lt<pt){const pct=((pt-lt)/pt*100).toFixed(1);gAttnR+=`<li><b>Koreksi (${dname}·${type}):</b> Total turun ${pct}% dibanding sesi sebelumnya.</li>`;}
     });
-    if (last.tipe==='RELASI') {
-      const ds2=parseFloat(last.skor1)-parseFloat(prev.skor1), dt=parseFloat(last.total)-parseFloat(prev.total);
-      if(ds2>0 && dt>0) gPola += `<li><b>${dname}</b> — merawat diri sendiri turut meningkatkan kualitas relasi.</li>`;
-    }
-    let maxAi=-1, maxAv=-Infinity;
-    labels.forEach((_,i) => { const avg=ds.reduce((s,x)=>s+parseFloat(x[`skor${i+1}`]),0)/ds.length; if(avg>maxAv){maxAv=avg;maxAi=i;} });
-    if (maxAi!==-1) gPola += `<li><b>${labels[maxAi]}</b> adalah kekuatan terkuat <b>${dname}</b> — jaga terus!</li>`;
-    const lt=parseFloat(last.total), pt=parseFloat(prev.total);
-    if(lt>pt) { const pct=((lt-pt)/pt*100).toFixed(1); gProj += `<li><b>${dname}</b> bertumbuh <b>${pct}%</b> dari sesi sebelumnya.</li>`; }
   });
   if (rInits.length===2) {
     const [i1,i2]=rInits;
@@ -1494,18 +1530,24 @@ function openClientReport() {
       chartCfg['RELASI'].forEach((lbl,i)=>{
         const d1=parseFloat(l1[`skor${i+1}`])-parseFloat(p1[`skor${i+1}`]);
         const d2=parseFloat(l2[`skor${i+1}`])-parseFloat(p2[`skor${i+1}`]);
-        if(d1>0&&d2>0) gDyn += `<li><b>${n1}</b> dan <b>${n2}</b> sama-sama meningkat di <b>${lbl}</b>.</li>`;
+        if(d1>0&&d2>0) gDyn+=`<li><b>Kerja Sama Solid — ${lbl}:</b> ${n1} & ${n2} sama-sama meningkat.</li>`;
+        else if(d1>0&&d2<=0) gDyn+=`<li><b>Asimetri — ${lbl}:</b> ${n1} naik tapi ${n2} belum.</li>`;
+        else if(d2>0&&d1<=0) gDyn+=`<li><b>Asimetri — ${lbl}:</b> ${n2} naik tapi ${n1} belum.</li>`;
       });
+      const gaps=chartCfg['RELASI'].map((l,i)=>({l,gap:Math.abs(parseFloat(l1[`skor${i+1}`])-parseFloat(l2[`skor${i+1}`]))}));
+      const mg=gaps.sort((a,b)=>b.gap-a.gap)[0];
+      if(mg.gap>=1.5) gDyn+=`<li><b>Gap Terbesar — ${mg.l}:</b> Selisih ${mg.gap.toFixed(1)} poin antara ${n1} & ${n2}.</li>`;
     }
   }
 
-  const insHtml = (gWin||gPola||gDyn||gProj) ? `
+  const insHtml = (gWin||gPola||gDyn||gAttnR||gProj) ? `
     <div class="section">
       <div class="section-title">Progress Insights</div>
-      ${gWin  ? `<div class="insight-grp"><div class="insight-ttl">Kemenangan Sesi Ini</div><ul class="insight-ul">${gWin}</ul></div>` : ''}
-      ${gPola ? `<div class="insight-grp"><div class="insight-ttl">Pola & Fondasi</div><ul class="insight-ul">${gPola}</ul></div>` : ''}
-      ${gDyn  ? `<div class="insight-grp"><div class="insight-ttl">Dinamika Pasangan</div><ul class="insight-ul">${gDyn}</ul></div>` : ''}
-      ${gProj ? `<div class="insight-grp"><div class="insight-ttl">Pertumbuhan</div><ul class="insight-ul">${gProj}</ul></div>` : ''}
+      ${gWin   ? `<div class="insight-grp"><div class="insight-ttl">Kemenangan & Kemajuan</div><ul class="insight-ul">${gWin}</ul></div>` : ''}
+      ${gPola  ? `<div class="insight-grp"><div class="insight-ttl">Pola & Fondasi</div><ul class="insight-ul">${gPola}</ul></div>` : ''}
+      ${gDyn   ? `<div class="insight-grp"><div class="insight-ttl">Dinamika Pasangan</div><ul class="insight-ul">${gDyn}</ul></div>` : ''}
+      ${gProj  ? `<div class="insight-grp"><div class="insight-ttl">Melihat ke Depan</div><ul class="insight-ul">${gProj}</ul></div>` : ''}
+      ${gAttnR ? `<div class="insight-grp insight-grp-attn"><div class="insight-ttl insight-ttl-warn">Perlu Perhatian</div><ul class="insight-ul insight-ul-warn">${gAttnR}</ul></div>` : ''}
     </div>` : '';
 
   // ── Highlight cards HTML ──────────────────────────────────────────────
@@ -1569,6 +1611,9 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f0fdfa;color:#0f172a;p
 .insight-ttl{font-weight:700;font-size:0.78em;text-transform:uppercase;letter-spacing:0.5px;color:#0d9488;margin-bottom:6px;}
 .insight-ul{padding-left:16px;color:#166534;font-size:0.87em;line-height:1.9;}
 .insight-ul li{margin-bottom:2px;}
+.insight-grp-attn{background:#fff1f2;border-radius:10px;padding:12px 14px;border:1px solid #fecdd3;}
+.insight-ttl-warn{color:#be123c!important;}
+.insight-ul-warn{color:#9f1239!important;}
 .radar-wrap{display:grid;grid-template-columns:${isCouple ? '1fr 1fr' : '1fr'};gap:16px;}
 .radar-item{text-align:center;}
 .radar-label{font-size:0.78em;font-weight:600;color:#475569;margin-bottom:10px;}
@@ -1797,7 +1842,7 @@ function generateInsights(data, type, initials, containerId, nameMap) {
     cData[ini] = data.filter(d => d.kode.slice(0,2)===ini).sort((a,b)=>(parseInt(a.sesi)||0)-(parseInt(b.sesi)||0));
   });
 
-  let gWin='', gPola='', gDyn='', gProj='';
+  let gWin='', gPola='', gDyn='', gAttn='', gProj='';
 
   initials.forEach(ini => {
     const sessions = cData[ini];
@@ -1805,28 +1850,70 @@ function generateInsights(data, type, initials, containerId, nameMap) {
     if (sessions.length < 2) return;
     const first = sessions[0], last = sessions[sessions.length-1], prev = sessions[sessions.length-2];
 
-    // Bright spot
-    let maxDi=-1, maxD=0;
-    labels.forEach((_,i)=>{ const d=parseFloat(last[`skor${i+1}`])-parseFloat(first[`skor${i+1}`]); if(d>maxD){maxD=d;maxDi=i;} });
-    if (maxDi!==-1) gWin += `<li><b>Apresiasi Besar (${dname}):</b> Area <b>${labels[maxDi]}</b> meningkat <b>+${maxD.toFixed(1)}</b> poin sejak awal.</li>`;
+    // ── Per-area full breakdown ──────────────────────────────────────────
+    const areaStats = labels.map((lbl, i) => {
+      const f    = parseFloat(first[`skor${i+1}`]);
+      const l    = parseFloat(last[`skor${i+1}`]);
+      const p    = parseFloat(prev[`skor${i+1}`]);
+      const delta   = l - f;                                             // vs sesi 1
+      const deltaPrev = l - p;                                          // vs sesi sebelumnya
+      const pctFirst  = f > 0 ? ((delta / f) * 100) : 0;
+      const pctPrev   = p > 0 ? ((deltaPrev / p) * 100) : 0;
+      const avg  = sessions.reduce((acc,v)=>acc+parseFloat(v[`skor${i+1}`]),0)/sessions.length;
+      // trajectory over last 3 sessions
+      let trend = 'stable';
+      if (sessions.length >= 3) {
+        const s3 = sessions.slice(-3).map(v => parseFloat(v[`skor${i+1}`]));
+        if (s3[1]>s3[0] && s3[2]>s3[1]) trend = 'rising';
+        else if (s3[1]<s3[0] && s3[2]<s3[1]) trend = 'falling';
+        else if (s3[2]>s3[1] && s3[1]<s3[0]) trend = 'recovered';
+        else if (s3[2]<s3[1] && s3[1]>s3[0]) trend = 'peaked';
+      }
+      return { lbl, f, l, p, delta, deltaPrev, pctFirst, pctPrev, avg, trend };
+    });
 
-    // Micro wins
-    let wins=[];
-    labels.forEach((_,i)=>{ const d=parseFloat(last[`skor${i+1}`])-parseFloat(prev[`skor${i+1}`]); if(d>0) wins.push({label:labels[i],delta:d}); });
-    if (wins.length===1) gWin += `<li><b>Langkah Kecil (${dname}):</b> Naik <b>${wins[0].label}</b> +${wins[0].delta.toFixed(1)} minggu ini.</li>`;
-    else if (wins.length>=2) {
-      gWin  += `<li><b>Kemajuan (${dname}):</b> Peningkatan pada <b>${wins[0].label}</b> dan <b>${wins[1].label}</b> minggu ini.</li>`;
-      gPola += `<li><b>Efek Domino (${dname}):</b> Usaha di <b>${wins[0].label}</b> berdampak positif pada <b>${wins[1].label}</b>.</li>`;
+    // Sort by delta desc
+    const improved = areaStats.filter(a => a.delta > 0).sort((a,b)=>b.delta-a.delta);
+    const declined = areaStats.filter(a => a.delta < 0).sort((a,b)=>a.delta-b.delta);
+    const stable   = areaStats.filter(a => a.delta === 0);
+
+    // ── gWin: Semua area yang meningkat ──────────────────────────────────
+    improved.forEach((a, idx) => {
+      const pctStr = a.pctFirst !== 0 ? ` (↑${a.pctFirst.toFixed(0)}%)` : '';
+      if (idx === 0) {
+        gWin += `<li><b>Kemajuan Terbesar (${dname}):</b> <b>${a.lbl}</b> naik <b>+${a.delta.toFixed(1)}</b> poin${pctStr} sejak sesi pertama.</li>`;
+      } else {
+        gWin += `<li><b>${dname} — ${a.lbl}:</b> Meningkat +${a.delta.toFixed(1)} poin${pctStr}.</li>`;
+      }
+    });
+
+    // Micro wins sesi ini (vs sesi sebelumnya)
+    const recentWins = areaStats.filter(a => a.deltaPrev > 0).sort((a,b)=>b.deltaPrev-a.deltaPrev);
+    if (recentWins.length === 1) {
+      gWin += `<li><b>Langkah Sesi Ini (${dname}):</b> Naik di <b>${recentWins[0].lbl}</b> +${recentWins[0].deltaPrev.toFixed(1)} dari sesi sebelumnya.</li>`;
+    } else if (recentWins.length >= 2) {
+      gWin += `<li><b>Kemajuan Sesi Ini (${dname}):</b> Naik di <b>${recentWins[0].lbl}</b> (+${recentWins[0].deltaPrev.toFixed(1)}) dan <b>${recentWins[1].lbl}</b> (+${recentWins[1].deltaPrev.toFixed(1)}).</li>`;
     }
 
-    // Micro-shift macro-impact
+    // Daya ungkit
     let found=false;
-    labels.forEach((l,i) => {
+    areaStats.forEach(a => {
       if(found) return;
-      const d=parseFloat(last[`skor${i+1}`])-parseFloat(prev[`skor${i+1}`]);
       const dt=parseFloat(last.total)-parseFloat(prev.total);
-      if(d>0 && d<=1.0 && dt>=2.5){ gWin += `<li><b>Daya Ungkit (${dname}):</b> Perubahan kecil pada <b>${l}</b> mendongkrak total +${dt.toFixed(1)}.</li>`; found=true; }
+      if(a.deltaPrev>0 && a.deltaPrev<=1.0 && dt>=2.5){ gWin += `<li><b>Daya Ungkit (${dname}):</b> Perubahan kecil di <b>${a.lbl}</b> mendongkrak total skor +${dt.toFixed(1)}.</li>`; found=true; }
     });
+
+    // ── gPola: Fondasi, pola, konsistensi ────────────────────────────────
+    // Fondasi terkuat (highest avg)
+    const byAvg = [...areaStats].sort((a,b)=>b.avg-a.avg);
+    gPola += `<li><b>Fondasi Terkuat (${dname}):</b> <b>${byAvg[0].lbl}</b> — rata-rata ${byAvg[0].avg.toFixed(1)} di semua sesi.</li>`;
+    // Area prioritas pengembangan (lowest avg)
+    gPola += `<li><b>Area Prioritas (${dname}):</b> <b>${byAvg[byAvg.length-1].lbl}</b> adalah area dengan rata-rata terendah (${byAvg[byAvg.length-1].avg.toFixed(1)}) — fokus di sini.</li>`;
+
+    // Efek domino
+    if (recentWins.length >= 2) {
+      gPola += `<li><b>Efek Domino (${dname}):</b> Usaha di <b>${recentWins[0].lbl}</b> berdampak positif pada <b>${recentWins[1].lbl}</b>.</li>`;
+    }
 
     // Self-care (RELASI only)
     if (type==='RELASI') {
@@ -1835,28 +1922,38 @@ function generateInsights(data, type, initials, containerId, nameMap) {
       if(ds>0 && dt>0) gPola += `<li><b>Self-Care (${dname}):</b> Merawat <b>Kebahagiaan Pribadi</b> turut meningkatkan kualitas relasi!</li>`;
     }
 
-    // Kekuatan fondasi
-    let maxAi=-1, maxA=0;
-    labels.forEach((_,i)=>{
-      const avg=sessions.reduce((acc,v)=>acc+parseFloat(v[`skor${i+1}`]),0)/sessions.length;
-      if(avg>maxA){maxA=avg;maxAi=i;}
-    });
-    if(maxAi!==-1) gPola += `<li><b>Fondasi Utama (${dname}):</b> <b>${labels[maxAi]}</b> adalah kekuatan terkuat (rata-rata ${maxA.toFixed(1)}).</li>`;
+    // Konsistensi: area yang stabil di semua sesi
+    if (stable.length > 0) {
+      stable.forEach(a => gPola += `<li><b>Konsisten (${dname}) — ${a.lbl}:</b> Stabil di semua sesi (skor ${a.l.toFixed(1)}).</li>`);
+    }
 
-    // Resiliensi
-    if(sessions.length>=3) {
-      const li=sessions.length-1;
-      labels.forEach((l,idx)=>{
-        const curr=parseFloat(sessions[li][`skor${idx+1}`]);
-        const bef=parseFloat(sessions[li-1][`skor${idx+1}`]);
-        const past=parseFloat(sessions[li-2][`skor${idx+1}`]);
-        if(bef<past && curr>bef) gPola += `<li><b>Pemulihan (${dname}):</b> Sempat turun, berhasil naik kembali di <b>${l}</b>.</li>`;
+    // Trajectory insights (3+ sesi)
+    if (sessions.length >= 3) {
+      areaStats.forEach(a => {
+        if (a.trend === 'rising')    gProj += `<li><b>Tren Naik (${dname}) — ${a.lbl}:</b> Meningkat konsisten 3 sesi berturut-turut!</li>`;
+        if (a.trend === 'recovered') gPola += `<li><b>Pemulihan (${dname}) — ${a.lbl}:</b> Sempat turun, berhasil naik kembali sesi ini.</li>`;
+        if (a.trend === 'peaked')    gAttn += `<li><b>Perlu Jaga (${dname}) — ${a.lbl}:</b> Sempat naik tinggi, sesi ini ada koreksi ke bawah.</li>`;
+        if (a.trend === 'falling')   gAttn += `<li><b>Tren Turun (${dname}) — ${a.lbl}:</b> Turun 3 sesi berturut-turut — prioritaskan di sesi berikutnya.</li>`;
       });
     }
 
-    // Momentum
+    // ── gAttn: Area yang menurun sejak sesi 1 ────────────────────────────
+    declined.forEach(a => {
+      const pctStr = a.pctFirst !== 0 ? ` (${a.pctFirst.toFixed(0)}%)` : '';
+      gAttn += `<li><b>${dname} — ${a.lbl}:</b> Turun ${a.delta.toFixed(1)} poin${pctStr} sejak sesi pertama.</li>`;
+    });
+
+    // ── gProj: Momentum & proyeksi ────────────────────────────────────────
     const lt=parseFloat(last.total), pt=parseFloat(prev.total);
-    if(lt>pt) { const pct=((lt-pt)/pt*100).toFixed(1); gProj += `<li><b>Momentum (${dname}):</b> Tumbuh <b>${pct}%</b> dari sesi sebelumnya. Terus pertahankan!</li>`; }
+    if (lt > pt) {
+      const pct=((lt-pt)/pt*100).toFixed(1);
+      gProj += `<li><b>Momentum (${dname}):</b> Total skor naik <b>${pct}%</b> dari sesi sebelumnya. Terus pertahankan!</li>`;
+    } else if (lt < pt) {
+      const pct=((pt-lt)/pt*100).toFixed(1);
+      gAttn += `<li><b>Koreksi (${dname}):</b> Total skor turun ${pct}% dibanding sesi sebelumnya — cek faktor pemicunya.</li>`;
+    } else {
+      gProj += `<li><b>Stabil (${dname}):</b> Total skor sama persis dengan sesi sebelumnya — konsisten!</li>`;
+    }
   });
 
   // Couple dynamics
@@ -1865,11 +1962,18 @@ function generateInsights(data, type, initials, containerId, nameMap) {
     const n1=nameMap[i1]||i1, n2=nameMap[i2]||i2;
     if(s1.length>=2 && s2.length>=2) {
       const l1=s1[s1.length-1],p1=s1[s1.length-2],l2=s2[s2.length-1],p2=s2[s2.length-2];
+      let solidCount=0;
       chartCfg.RELASI.forEach((l,i)=>{
         const d1=parseFloat(l1[`skor${i+1}`])-parseFloat(p1[`skor${i+1}`]);
         const d2=parseFloat(l2[`skor${i+1}`])-parseFloat(p2[`skor${i+1}`]);
-        if(d1>0 && d2>0) gDyn += `<li><b>Kerja Sama Solid:</b> Keduanya (${n1} & ${n2}) sama-sama meningkat di <b>${l}</b>.</li>`;
+        if(d1>0 && d2>0) { gDyn += `<li><b>Kerja Sama Solid:</b> Keduanya (${n1} & ${n2}) sama-sama meningkat di <b>${l}</b>.</li>`; solidCount++; }
+        else if(d1>0 && d2<=0) gDyn += `<li><b>Asimetri Sesi Ini — ${l}:</b> ${n1} naik tapi ${n2} belum — bantu saling support.</li>`;
+        else if(d2>0 && d1<=0) gDyn += `<li><b>Asimetri Sesi Ini — ${l}:</b> ${n2} naik tapi ${n1} belum — bantu saling support.</li>`;
       });
+      // Gap terbesar antara keduanya
+      const gaps = chartCfg.RELASI.map((l,i)=>({ l, gap: Math.abs(parseFloat(l1[`skor${i+1}`])-parseFloat(l2[`skor${i+1}`])) }));
+      const maxGap = gaps.sort((a,b)=>b.gap-a.gap)[0];
+      if (maxGap.gap >= 1.5) gDyn += `<li><b>Gap Terbesar:</b> <b>${maxGap.l}</b> memiliki selisih ${maxGap.gap.toFixed(1)} poin antara ${n1} & ${n2} — area untuk diskusi bersama.</li>`;
     }
     if(s1.length>=3 && s2.length>=3) {
       const pv1=s1[s1.length-2],ps1=s1[s1.length-3],lv2=s2[s2.length-1],pv2=s2[s2.length-2];
@@ -1906,11 +2010,12 @@ function generateInsights(data, type, initials, containerId, nameMap) {
   const growthSection = growthBarHtml ? `<div class="growth-bar-wrap"><div class="growth-bar-title">Pertumbuhan Total Skor (Sejak Sesi 1)</div>${growthBarHtml}</div>` : '';
 
   let html = `<div class="insight-box"><div class="insight-box-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#166534" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Progress Insights</div>${growthSection}<div class="insight-grid">`;
-  if (gWin)  html += `<div class="insight-group"><div class="insight-group-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg> Kemenangan Sesi Ini</div><ul class="insight-list">${gWin}</ul></div>`;
+  if (gWin)  html += `<div class="insight-group"><div class="insight-group-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg> Kemenangan & Kemajuan</div><ul class="insight-list">${gWin}</ul></div>`;
   if (gPola) html += `<div class="insight-group"><div class="insight-group-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg> Pola & Fondasi</div><ul class="insight-list">${gPola}</ul></div>`;
   if (gDyn)  html += `<div class="insight-group"><div class="insight-group-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> Dinamika Pasangan</div><ul class="insight-list">${gDyn}</ul></div>`;
   if (gProj) html += `<div class="insight-group"><div class="insight-group-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg> Melihat ke Depan</div><ul class="insight-list">${gProj}</ul></div>`;
-  if (!gWin && !gPola && !gDyn && !gProj) html += `<div class="no-insight">Belum cukup data untuk menghasilkan insights. Lengkapi minimal 2 sesi.</div>`;
+  if (gAttn) html += `<div class="insight-group insight-group-attn"><div class="insight-group-title insight-ttl-attn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Perlu Perhatian</div><ul class="insight-list insight-list-attn">${gAttn}</ul></div>`;
+  if (!gWin && !gPola && !gDyn && !gProj && !gAttn) html += `<div class="no-insight">Belum cukup data untuk menghasilkan insights. Lengkapi minimal 2 sesi.</div>`;
   html += '</div></div>';
   el.innerHTML = html;
 }
