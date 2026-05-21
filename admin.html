@@ -1160,7 +1160,7 @@ function openPrintReport() {
           <div class="prog-left">
             ${isCouple ? `<span class="prog-person">${p.person}</span>` : ''}
             <div class="prog-label">${p.label}</div>
-            <div class="prog-type">${p.type === 'PRIBADI' ? 'Pribadi' : 'Relasi'}</div>
+            ${isCouple ? `<div class="prog-type">${p.type === 'PRIBADI' ? 'Pribadi' : 'Relasi'}</div>` : ''}
           </div>
           <div class="prog-right">
             <div class="delta">+${p.delta.toFixed(1)}</div>
@@ -1456,7 +1456,7 @@ function openClientReport() {
         <div class="prog-left">
           ${isCouple ? `<span class="prog-person">${p.person}</span>` : ''}
           <div class="prog-label">${p.label}</div>
-          <div class="prog-type">${p.type === 'PRIBADI' ? 'Pribadi' : 'Relasi'}</div>
+          ${isCouple ? `<div class="prog-type">${p.type === 'PRIBADI' ? 'Pribadi' : 'Relasi'}</div>` : ''}
         </div>
         <div class="prog-right">
           <div class="c-delta">+${p.delta.toFixed(1)}</div>
