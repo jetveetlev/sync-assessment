@@ -1310,7 +1310,7 @@ function renderEditTable() {
   const nameMap = {};
   nameMap[c.code.slice(0,2)] = c.name;
   if (isCouple && c.partner_code) nameMap[c.partner_code.slice(0,2)] = c.partner_name;
-  const chartCfgLocal = { PRIBADI: ['INDIVIDU','RELASI','SOSIAL','OVERALL'], RELASI: ['Kebahagiaan Pribadi','Komunikasi & Keterbukaan','Kehangatan & Keintiman','Kebersamaan & Keterlibatan','Kepercayaan & Keamanan'] };
+  const chartCfgLocal = { PRIBADI: ['Kebahagiaan dan Kesejahteraan Pribadi','Keluarga dan Pasangan','Pekerjaan dan Pergaulan','Hidup Secara Keseluruhan'], RELASI: ['Kebahagiaan Pribadi','Komunikasi & Keterbukaan','Kehangatan & Keintiman','Kebersamaan & Keterlibatan','Kepercayaan & Keamanan'] };
   document.getElementById('editDataTitle').textContent = `Edit Data — ${isCouple ? c.name+' & '+c.partner_name : c.name}`;
 
   const rows = _editSessions.map(s => {
@@ -1727,7 +1727,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f0fdfa;color:#0f172a;p
 //   DASHBOARD RENDER (Lex's engine, adapted)
 // ══════════════════════════════════════════════════════════
 const chartCfg = {
-  PRIBADI: ['INDIVIDU','RELASI','SOSIAL','OVERALL'],
+  PRIBADI: ['Kebahagiaan dan Kesejahteraan Pribadi','Keluarga dan Pasangan','Pekerjaan dan Pergaulan','Hidup Secara Keseluruhan'],
   RELASI:  ['Kebahagiaan Pribadi','Komunikasi & Keterbukaan','Kehangatan & Keintiman','Kebersamaan & Keterlibatan','Kepercayaan & Keamanan'],
   Colors:       ['#6366f1','#0d9488','#f59e0b','#10b981','#8b5cf6'],
   CoupleColors: ['#0d9488','#e11d48'],
