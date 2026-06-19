@@ -197,8 +197,66 @@ input[type=range]:focus { outline: none; }
 .btn-ghost { background: #f1f5f9; color: var(--slate-2); }
 .btn-ghost:hover { background: #e2e8f0; }
 
-/* ══════════════ SCREEN 3: THANKS ══════════════ */
+/* ══════════════ SCREEN 2.5: REFLEKSI ══════════════ */
+#s-refleksi {
+  background: linear-gradient(160deg, #f0fdfa 0%, #faf5ff 100%);
+  align-items: center; justify-content: center; padding: 40px 24px;
+}
+.refleksi-card {
+  background: white; border-radius: 28px; padding: 36px 28px 32px;
+  width: 100%; max-width: 380px;
+  box-shadow: 0 8px 40px rgba(13,148,136,0.10), 0 2px 8px rgba(0,0,0,0.06);
+}
+.refleksi-icon {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: linear-gradient(135deg, #7c3aed, #a78bfa);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 20px;
+  box-shadow: 0 6px 20px rgba(124,58,237,0.3);
+  animation: popIn 0.55s cubic-bezier(0.34,1.56,0.64,1);
+}
+.refleksi-icon svg { width: 36px; height: 36px; stroke: white; fill: none; stroke-width: 2; stroke-linecap: round; }
+.refleksi-title { font-family: 'Lora', serif; font-size: 1.3em; font-weight: 700; color: var(--slate); text-align: center; margin-bottom: 6px; }
+.refleksi-sub { font-size: 0.82em; color: var(--slate-2); text-align: center; margin-bottom: 24px; line-height: 1.6; }
+.refleksi-q { margin-bottom: 18px; }
+.refleksi-q label { display: block; font-size: 0.8em; font-weight: 700; color: #7c3aed; margin-bottom: 8px; }
+.refleksi-q textarea {
+  width: 100%; border: 1.5px solid #e9d5ff; border-radius: 12px;
+  padding: 12px 14px; font-family: 'Inter', sans-serif; font-size: 0.88em;
+  color: var(--slate); resize: none; line-height: 1.6; outline: none;
+  transition: border-color 0.2s;
+}
+.refleksi-q textarea:focus { border-color: #7c3aed; }
+.refleksi-q textarea::placeholder { color: #c4b5fd; }
+.btn-purple { background: linear-gradient(135deg, #7c3aed, #a78bfa); color: white; box-shadow: 0 4px 16px rgba(124,58,237,0.3); }
+.btn-purple:hover:not(:disabled) { box-shadow: 0 6px 22px rgba(124,58,237,0.4); }
+.refleksi-skip { text-align: center; margin-top: 12px; }
+.refleksi-skip button { background: none; border: none; color: var(--slate-3); font-size: 0.78em; cursor: pointer; text-decoration: underline; }
 
+/* ══════════════ SCREEN 4: MILESTONE ══════════════ */
+#s-milestone {
+  background: linear-gradient(160deg, #fffbeb 0%, #fef3c7 100%);
+  align-items: center; justify-content: center; padding: 40px 24px;
+}
+.milestone-card {
+  background: white; border-radius: 28px; padding: 44px 28px 36px;
+  width: 100%; max-width: 380px; text-align: center;
+  box-shadow: 0 8px 40px rgba(245,158,11,0.15), 0 2px 8px rgba(0,0,0,0.06);
+}
+.milestone-icon {
+  width: 88px; height: 88px; border-radius: 50%;
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 24px;
+  box-shadow: 0 6px 24px rgba(245,158,11,0.4);
+  animation: popIn 0.55s cubic-bezier(0.34,1.56,0.64,1);
+  font-size: 2.2em;
+}
+.milestone-badge { font-size: 0.7em; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: #f59e0b; margin-bottom: 10px; }
+.milestone-title { font-family: 'Lora', serif; font-size: 1.5em; font-weight: 700; color: var(--slate); margin-bottom: 10px; }
+.milestone-desc { font-size: 0.85em; color: var(--slate-2); line-height: 1.8; margin-bottom: 28px; }
+
+/* ══════════════ SCREEN 3: THANKS ══════════════ */
 #s-thanks {
   background: linear-gradient(160deg, #f0fdfa 0%, #e0f2fe 100%);
   align-items: center; justify-content: center; padding: 40px 24px;
@@ -347,6 +405,40 @@ input[type=range]:focus { outline: none; }
     </div>
     <div class="prod-tag" style="padding:16px 0 0;">A Jet and Lex Production</div>
   </div>
+</div>
+
+<!-- ═══════ SCREEN 2.5: Refleksi ═══════ -->
+<div class="screen" id="s-refleksi">
+  <div class="refleksi-card">
+    <div class="refleksi-icon">
+      <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+    </div>
+    <div class="refleksi-title">Refleksi Singkat</div>
+    <p class="refleksi-sub">Dua pertanyaan kecil untuk melengkapi sesi ini. Jawab sesuai perasaan kamu.</p>
+    <div class="refleksi-q">
+      <label>🌿 Satu hal yang kamu syukuri minggu ini?</label>
+      <textarea id="r-syukur" rows="3" placeholder="Tuliskan di sini..."></textarea>
+    </div>
+    <div class="refleksi-q">
+      <label>🎯 Apa yang ingin kamu fokuskan di sesi berikutnya?</label>
+      <textarea id="r-fokus" rows="3" placeholder="Tuliskan di sini..."></textarea>
+    </div>
+    <button class="btn btn-purple" id="saveRefleksiBtn" onclick="saveReflection()">Simpan Refleksi</button>
+    <div class="refleksi-skip"><button onclick="skipReflection()">Lewati</button></div>
+  </div>
+  <div class="prod-tag">A Jet and Lex Production</div>
+</div>
+
+<!-- ═══════ SCREEN 4: Milestone ═══════ -->
+<div class="screen" id="s-milestone">
+  <div class="milestone-card">
+    <div class="milestone-icon" id="ms-icon">🏆</div>
+    <div class="milestone-badge" id="ms-badge">Pencapaian</div>
+    <div class="milestone-title" id="ms-title">Luar Biasa!</div>
+    <p class="milestone-desc" id="ms-desc"></p>
+    <button class="btn btn-teal" onclick="showScreen('s-thanks')">Lanjutkan</button>
+  </div>
+  <div class="prod-tag">A Jet and Lex Production</div>
 </div>
 
 <!-- ═══════ SCREEN 3: Thank You ═══════ -->
@@ -499,6 +591,20 @@ function startQuiz(type) {
   showScreen('s-quiz');
 }
 
+let _lastSessionId   = null;
+let _lastCode        = null;
+let _lastSesiKe      = null;
+let _pendingMilestone = null;
+
+const MILESTONE_MSG = {
+  sesi_1:   { icon:'🌱', badge:'Sesi Pertama', title:'Perjalanan Dimulai!', desc:'Langkah pertama adalah yang paling penting. Kamu sudah memulai — itu luar biasa!' },
+  sesi_3:   { icon:'🔥', badge:'3 Sesi', title:'Konsisten!', desc:'3 sesi selesai. Konsistensi adalah kunci perubahan — kamu sudah membuktikannya.' },
+  sesi_5:   { icon:'⭐', badge:'5 Sesi', title:'Komitmen Nyata!', desc:'5 sesi! Ini bukan kebetulan — ini adalah komitmen kamu pada diri sendiri.' },
+  sesi_10:  { icon:'🏆', badge:'10 Sesi', title:'Luar Biasa!', desc:'10 sesi! Kamu sudah menempuh perjalanan yang panjang. Lihat seberapa jauh kamu sudah berkembang.' },
+  sesi_20:  { icon:'💎', badge:'20 Sesi', title:'Dedikasi Penuh!', desc:'20 sesi! Dedikasi kamu patut diapresiasi setinggi-tingginya.' },
+  growth20: { icon:'📈', badge:'Pertumbuhan', title:'Tumbuh 20%!', desc:'Total skor kamu naik lebih dari 20% sejak sesi pertama. Perubahan nyata sedang terjadi!' },
+};
+
 async function submitData() {
   const btn    = document.getElementById('submitBtn');
   const code   = document.getElementById('clientCode').value;
@@ -517,17 +623,57 @@ async function submitData() {
         tanggal: new Date().toISOString().split('T')[0],
         tipe: currentType,
         sesi: sesiKe,
-        skor1: scores[0] || 0, skor2: scores[1] || 0,
-        skor3: scores[2] || 0, skor4: scores[3] || 0,
-        skor5: scores[4] || 0,
+        skor1: scores[0]||0, skor2: scores[1]||0,
+        skor3: scores[2]||0, skor4: scores[3]||0,
+        skor5: scores[4]||0,
         total: parseFloat(total.toFixed(1)),
       }),
     });
     const data = await res.json();
-    if (data.success) showScreen('s-thanks');
-    else alert('Gagal menyimpan. Coba lagi.');
+    if (data.success) {
+      _lastSessionId = data.session_id;
+      _lastCode      = code;
+      _lastSesiKe    = sesiKe;
+      // Pick first recognised milestone
+      const ms = (data.milestones || []).find(m => MILESTONE_MSG[m]);
+      _pendingMilestone = ms ? MILESTONE_MSG[ms] : null;
+      showScreen('s-refleksi');
+    } else {
+      alert('Gagal menyimpan. Coba lagi.');
+    }
   } catch { alert('Koneksi gagal. Periksa internet Anda.'); }
   finally { btn.disabled = false; setLoading(false); }
+}
+
+async function saveReflection() {
+  const btn   = document.getElementById('saveRefleksiBtn');
+  const syukur = document.getElementById('r-syukur').value.trim();
+  const fokus  = document.getElementById('r-fokus').value.trim();
+  btn.disabled = true;
+  btn.textContent = 'Menyimpan...';
+  try {
+    await fetch('/api?action=save_reflection', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ client_code: _lastCode, session_number: _lastSesiKe, syukur, fokus }),
+    });
+  } catch {}
+  afterReflection();
+}
+
+function skipReflection() { afterReflection(); }
+
+function afterReflection() {
+  if (_pendingMilestone) {
+    const m = _pendingMilestone;
+    document.getElementById('ms-icon').textContent  = m.icon;
+    document.getElementById('ms-badge').textContent = m.badge;
+    document.getElementById('ms-title').textContent = m.title;
+    document.getElementById('ms-desc').textContent  = m.desc;
+    showScreen('s-milestone');
+  } else {
+    showScreen('s-thanks');
+  }
 }
 </script>
 </body>

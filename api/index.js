@@ -136,13 +136,69 @@ module.exports = async (req, res) => {
         );
         if (dup.rows.length) return ok({ success: true, duplicate: true });
 
-        await pg.query(`
+        const ins = await pg.query(`
           INSERT INTO sessions (client_code,session_number,type,date,skor1,skor2,skor3,skor4,skor5,total)
-          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id
         `, [code, sesiKe, tipe,
             body.tanggal || new Date().toISOString().split('T')[0],
             parseFloat(body.skor1)||0, parseFloat(body.skor2)||0, parseFloat(body.skor3)||0,
             parseFloat(body.skor4)||0, parseFloat(body.skor5)||0, parseFloat(body.total)||0]);
+        const sessionId = ins.rows[0].id;
+
+        // ── Milestone detection ──────────────────────────────────────────
+        const milestones = [];
+        const allSessions = await pg.query(
+          `SELECT session_number, skor1, skor2, skor3, skor4, skor5, total
+           FROM sessions WHERE client_code=$1 ORDER BY session_number ASC`, [code]
+        );
+        const rows = allSessions.rows;
+        const count = rows.length;
+
+        // Session count milestones
+        if ([1,3,5,10,20].includes(count)) milestones.push(`sesi_${count}`);
+
+        // First time any score crosses 7
+        if (count >= 2) {
+          const first = rows[0];
+          const latest = rows[rows.length - 1];
+          const prev   = rows[rows.length - 2];
+          for (let i = 1; i <= 5; i++) {
+            const vNow  = parseFloat(latest[`skor${i}`]) || 0;
+            const vPrev = parseFloat(prev[`skor${i}`])   || 0;
+            const vFirst= parseFloat(first[`skor${i}`])  || 0;
+            if (vNow >= 7 && vPrev < 7 && vFirst < 7) milestones.push(`first7_skor${i}`);
+          }
+          // Total score +20% from session 1
+          const t0 = parseFloat(first.total) || 0;
+          const tN = parseFloat(latest.total) || 0;
+          if (t0 > 0 && tN >= t0 * 1.2 && (parseFloat(prev.total)||0) < t0 * 1.2) {
+            milestones.push('growth20');
+          }
+        }
+
+        return ok({ success: true, session_id: sessionId, milestones });
+      }
+
+      // ── Client: save reflection ──────────────────────────────────────────
+      case 'save_reflection': {
+        const code   = (body.client_code || '').toUpperCase();
+        const sesiKe = parseInt(body.session_number) || 1;
+
+        await pg.query(`
+          CREATE TABLE IF NOT EXISTS reflections (
+            id             SERIAL PRIMARY KEY,
+            client_code    TEXT NOT NULL,
+            session_number INTEGER NOT NULL,
+            syukur         TEXT,
+            fokus          TEXT,
+            created_at     TIMESTAMPTZ DEFAULT NOW()
+          )
+        `);
+        await pg.query(`
+          INSERT INTO reflections (client_code, session_number, syukur, fokus)
+          VALUES ($1,$2,$3,$4)
+          ON CONFLICT DO NOTHING
+        `, [code, sesiKe, (body.syukur||'').trim()||null, (body.fokus||'').trim()||null]);
         return ok({ success: true });
       }
 
