@@ -2,11 +2,9 @@
   "version": 2,
   "builds": [
     { "src": "api/index.js", "use": "@vercel/node" },
-    { "src": "api/migrate.js", "use": "@vercel/node" },
     { "src": "*.html", "use": "@vercel/static" }
   ],
   "routes": [
-    { "src": "/api/migrate", "dest": "/api/migrate.js" },
     { "src": "/api", "dest": "/api/index.js" },
     { "src": "/api/(.*)", "dest": "/api/index.js" },
     { "src": "/admin", "dest": "/admin.html" },
