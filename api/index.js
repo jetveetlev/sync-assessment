@@ -354,7 +354,16 @@ module.exports = async (req, res) => {
           tanggal: s.date, skor1: s.skor1, skor2: s.skor2, skor3: s.skor3,
           skor4: s.skor4, skor5: s.skor5, total: s.total,
         }));
-        return ok({ success: true, client, sessions });
+        let reflections = [];
+        try {
+          await pg.query(`CREATE TABLE IF NOT EXISTS reflections (id SERIAL PRIMARY KEY, client_code TEXT, session_number INTEGER, syukur TEXT, fokus TEXT, created_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(client_code, session_number))`);
+          const rr = await pg.query(
+            `SELECT client_code, session_number, syukur, fokus, created_at FROM reflections WHERE client_code = ANY($1) ORDER BY session_number DESC`,
+            [codes]
+          );
+          reflections = rr.rows;
+        } catch(_) {}
+        return ok({ success: true, client, sessions, reflections });
       }
 
       // ── Coach: update session scores ─────────────────────────────────────

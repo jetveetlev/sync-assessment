@@ -419,6 +419,20 @@ body { font-family:'Inter',-apple-system,system-ui,sans-serif; background:var(--
 .insight-list-attn { margin:0; padding-left:18px; color:#9f1239; font-size:0.82em; line-height:1.7; }
 .insight-list-attn li { margin-bottom:6px; }
 
+/* Reflections section */
+.refl-list { display:flex; flex-direction:column; gap:12px; margin-bottom:32px; }
+.refl-item { background:white; border-radius:var(--radius-sm); padding:16px; border:1px solid #e0f2fe; }
+.refl-meta { display:flex; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
+.refl-sesi { font-weight:700; color:#0369a1; font-size:0.83em; background:#e0f2fe; padding:2px 8px; border-radius:20px; }
+.refl-who  { font-size:0.82em; color:#0284c7; font-weight:600; }
+.refl-date { font-size:0.78em; color:#94a3b8; margin-left:auto; }
+.refl-row  { display:flex; gap:10px; align-items:flex-start; margin-bottom:8px; }
+.refl-row:last-child { margin-bottom:0; }
+.refl-icon { font-size:1.1em; margin-top:1px; flex-shrink:0; }
+.refl-text { display:flex; flex-direction:column; gap:2px; }
+.refl-lbl  { font-size:0.75em; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.04em; }
+.refl-text span:last-child { font-size:0.875em; color:#1e293b; line-height:1.5; }
+
 /* Loading / error states */
 .dash-loading { text-align:center; padding:60px 20px; color:var(--slate-2); }
 .spinner { width:36px; height:36px; border:3px solid var(--border); border-top-color:var(--teal); border-radius:50%; animation:spin 0.75s linear infinite; margin:0 auto 12px; }
@@ -1034,14 +1048,15 @@ async function openDash(clientId) {
     activeCharts = [];
 
     // Store for print report access
-    window._dashState = { sessions, client, nameMap };
+    const reflections = d.reflections || [];
+    window._dashState = { sessions, client, nameMap, reflections };
 
     // Show print button only when >= 2 sessions exist
     const maxSesi = getMaxSesi(sessions);
     document.getElementById('printReportBtn').style.display   = maxSesi >= 2 ? 'flex' : 'none';
     document.getElementById('clientReportBtn').style.display  = maxSesi >= 2 ? 'flex' : 'none';
 
-    renderDashboard(sessions, client, nameMap);
+    renderDashboard(sessions, client, nameMap, reflections);
   } catch(e) {
     document.getElementById('dashBody').innerHTML = '<div class="dash-loading">Koneksi gagal. Coba lagi.</div>';
   }
@@ -1821,7 +1836,7 @@ function getMaxSesi(data) {
   return max || data.length || 1;
 }
 
-function renderDashboard(sessions, client, nameMap) {
+function renderDashboard(sessions, client, nameMap, reflections) {
   const body     = document.getElementById('dashBody');
   const hasPrib  = sessions.some(d => d.tipe === 'PRIBADI');
   const hasRelasi= sessions.some(d => d.tipe === 'RELASI');
@@ -1831,6 +1846,7 @@ function renderDashboard(sessions, client, nameMap) {
   if (hasPrib)  html += buildSectionHTML('PRIBADI');
   if (hasRelasi) html += buildSectionHTML('RELASI');
   if (!html) html = '<div class="dash-loading" style="padding:80px 20px;">Belum ada data sesi.</div>';
+  if (reflections && reflections.length) html += buildReflectionsHTML(reflections, client);
   body.innerHTML = html;
 
   if (hasPrib) {
@@ -1864,6 +1880,35 @@ function renderDashboard(sessions, client, nameMap) {
     createCoupleSummaryChart(td, initials, 'RELASI', 'total-RELASI', ms, nameMap);
     createRelasiCoupleItemCharts(sessions, initials, 'couple-RELASI', ms, nameMap);
   }
+}
+
+function buildReflectionsHTML(reflections, client) {
+  const isCouple = client.type === 'couple';
+  const nameOf = code => {
+    if (!code) return '';
+    const prefix = code.slice(0,2);
+    if (client.code && client.code.slice(0,2) === prefix) return client.name;
+    if (client.partner_code && client.partner_code.slice(0,2) === prefix) return client.partner_name;
+    return code;
+  };
+
+  const rows = reflections.map(r => {
+    const label = isCouple ? `<span class="refl-who">${nameOf(r.client_code)}</span>` : '';
+    const dt = r.created_at ? new Date(r.created_at).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}) : '';
+    return `
+      <div class="refl-item">
+        <div class="refl-meta">
+          <span class="refl-sesi">Sesi ${r.session_number}</span>${label}
+          <span class="refl-date">${dt}</span>
+        </div>
+        ${r.syukur ? `<div class="refl-row"><span class="refl-icon">🌿</span><div class="refl-text"><span class="refl-lbl">Syukur</span><span>${r.syukur}</span></div></div>` : ''}
+        ${r.fokus  ? `<div class="refl-row"><span class="refl-icon">🎯</span><div class="refl-text"><span class="refl-lbl">Fokus</span><span>${r.fokus}</span></div></div>` : ''}
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="section-hdr" style="margin-top:32px;">Refleksi Klien</div>
+    <div class="refl-list">${rows}</div>`;
 }
 
 function buildSectionHTML(type) {
