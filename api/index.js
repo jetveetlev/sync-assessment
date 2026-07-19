@@ -2,9 +2,12 @@
 const { randomUUID } = require('crypto');
 const { Client }     = require('pg');
 
+// env values may carry a trailing newline from the Vercel dashboard — always trim.
+const envStr = (v, fallback) => (v == null ? fallback : String(v).trim() || fallback);
+
 const COACHES = {
-  jet: { id: 1, name: 'Jet', password: process.env.COACH_JET_PW || 'jet123' },
-  lex: { id: 2, name: 'Lex', password: process.env.COACH_LEX_PW || 'lex123' },
+  jet: { id: 1, name: 'Jet', password: envStr(process.env.COACH_JET_PW, 'jet123') },
+  lex: { id: 2, name: 'Lex', password: envStr(process.env.COACH_LEX_PW, 'lex123') },
 };
 
 // ── DB client factory (new client per request — serverless safe) ────────────
@@ -230,8 +233,8 @@ module.exports = async (req, res) => {
       // ── Coach: auto-login via secret code ───────────────────────────────
       case 'autologin': {
         const secrets = {
-          [process.env.SECRET_JET || '102132']: 'jet',
-          [process.env.SECRET_LEX || '010203']: 'lex',
+          [envStr(process.env.SECRET_JET, '102132')]: 'jet',
+          [envStr(process.env.SECRET_LEX, '010203')]: 'lex',
         };
         const username = secrets[(body.secret || '').trim()];
         if (!username) return err('Invalid', 403);
@@ -249,8 +252,9 @@ module.exports = async (req, res) => {
       // ── Coach: login ─────────────────────────────────────────────────────
       case 'login': {
         const username = (body.username || '').toLowerCase().trim();
+        const password = (body.password || '').trim();
         const coach    = COACHES[username];
-        if (!coach || coach.password !== body.password) return err('Invalid credentials', 401);
+        if (!coach || coach.password !== password) return err('Invalid credentials', 401);
         const newToken = randomUUID();
         const expires  = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
         await pg.query(
