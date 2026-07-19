@@ -230,6 +230,9 @@ input[type=range]:focus { outline: none; }
 .refleksi-q textarea::placeholder { color: #c4b5fd; }
 .btn-purple { background: linear-gradient(135deg, #7c3aed, #a78bfa); color: white; box-shadow: 0 4px 16px rgba(124,58,237,0.3); }
 .btn-purple:hover:not(:disabled) { box-shadow: 0 6px 22px rgba(124,58,237,0.4); }
+.btn-indigo { background: linear-gradient(135deg, #4f46e5, #818cf8); color: white; box-shadow: 0 4px 16px rgba(79,70,229,0.3); }
+.btn-indigo:hover:not(:disabled) { box-shadow: 0 6px 22px rgba(79,70,229,0.4); }
+.next-note { font-size: 0.82em; color: var(--slate-2); line-height: 1.6; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; }
 .refleksi-skip { text-align: center; margin-top: 12px; }
 .refleksi-skip button { background: none; border: none; color: var(--slate-3); font-size: 0.78em; cursor: pointer; text-decoration: underline; }
 
@@ -436,7 +439,7 @@ input[type=range]:focus { outline: none; }
     <div class="milestone-badge" id="ms-badge">Pencapaian</div>
     <div class="milestone-title" id="ms-title">Luar Biasa!</div>
     <p class="milestone-desc" id="ms-desc"></p>
-    <button class="btn btn-teal" onclick="showScreen('s-thanks')">Lanjutkan</button>
+    <button class="btn btn-teal" onclick="showThanks()">Lanjutkan</button>
   </div>
   <div class="prod-tag">A Jet and Lex Production</div>
 </div>
@@ -448,11 +451,20 @@ input[type=range]:focus { outline: none; }
       <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
     </div>
     <div class="thanks-title">Terima Kasih!</div>
-    <p class="thanks-sub">
+    <p class="thanks-sub" id="thanksSub">
       Data assessment Anda telah berhasil disimpan.<br>
       Sampai jumpa di sesi berikutnya.
     </p>
-    <button class="btn btn-ghost" onclick="location.reload()">Selesai</button>
+    <div id="thanksNext" style="display:none;">
+      <div class="next-note">
+        Masih ada satu assessment lagi untuk sesi ini.<br>
+        Mengisi keduanya membantu coach melihat gambaran yang utuh.
+      </div>
+      <button class="btn btn-indigo" id="nextTypeBtn" onclick="continueToNextType()">
+        Lanjutkan ke Assessment Relasi
+      </button>
+    </div>
+    <button class="btn btn-ghost" id="finishBtn" onclick="location.reload()">Selesai</button>
   </div>
   <div class="prod-tag">A Jet and Lex Production</div>
 </div>
@@ -513,6 +525,7 @@ async function verifyCode(code) {
       el.classList.add('valid');
       row.textContent = 'Kode valid ✓'; row.className = 'status-row ok';
       currentClient = data.type;
+      _doneTypes = new Set();
       document.getElementById('typeGrid').style.display = 'flex';
       if (data.type === 'couple') document.getElementById('btnRelasi').style.display = 'flex';
       fetch(`/api?action=next_session&code=${code}`)
@@ -595,6 +608,7 @@ let _lastSessionId   = null;
 let _lastCode        = null;
 let _lastSesiKe      = null;
 let _pendingMilestone = null;
+let _doneTypes       = new Set();   // assessment types completed this sitting
 
 const MILESTONE_MSG = {
   sesi_1:   { icon:'🌱', badge:'Sesi Pertama', title:'Perjalanan Dimulai!', desc:'Langkah pertama adalah yang paling penting. Kamu sudah memulai — itu luar biasa!' },
@@ -634,6 +648,7 @@ async function submitData() {
       _lastSessionId = data.session_id;
       _lastCode      = code;
       _lastSesiKe    = sesiKe;
+      _doneTypes.add(currentType);
       // Pick first recognised milestone
       const ms = (data.milestones || []).find(m => MILESTONE_MSG[m]);
       _pendingMilestone = ms ? MILESTONE_MSG[ms] : null;
@@ -670,10 +685,45 @@ function afterReflection() {
     document.getElementById('ms-badge').textContent = m.badge;
     document.getElementById('ms-title').textContent = m.title;
     document.getElementById('ms-desc').textContent  = m.desc;
+    _pendingMilestone = null;
     showScreen('s-milestone');
   } else {
-    showScreen('s-thanks');
+    showThanks();
   }
+}
+
+// Couples fill both Pribadi and Relasi each session — offer the one still missing.
+function pendingType() {
+  if (currentClient !== 'couple') return null;
+  return ['PRIBADI','RELASI'].find(t => !_doneTypes.has(t)) || null;
+}
+
+function showThanks() {
+  const next = pendingType();
+  const nextBox = document.getElementById('thanksNext');
+  const finish  = document.getElementById('finishBtn');
+  const sub     = document.getElementById('thanksSub');
+
+  if (next) {
+    document.getElementById('nextTypeBtn').textContent =
+      next === 'RELASI' ? 'Lanjutkan ke Assessment Relasi' : 'Lanjutkan ke Assessment Pribadi';
+    sub.innerHTML = 'Assessment ' + (next === 'RELASI' ? 'Pribadi' : 'Relasi') + ' Anda telah tersimpan.';
+    nextBox.style.display = '';
+    finish.textContent = 'Nanti Saja';
+  } else {
+    sub.innerHTML = 'Data assessment Anda telah berhasil disimpan.<br>Sampai jumpa di sesi berikutnya.';
+    nextBox.style.display = 'none';
+    finish.textContent = 'Selesai';
+  }
+  showScreen('s-thanks');
+}
+
+function continueToNextType() {
+  const next = pendingType();
+  if (!next) { showThanks(); return; }
+  document.getElementById('r-syukur').value = '';
+  document.getElementById('r-fokus').value  = '';
+  startQuiz(next);
 }
 </script>
 </body>
