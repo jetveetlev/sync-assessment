@@ -424,8 +424,14 @@ body { font-family:'Inter',-apple-system,system-ui,sans-serif; background:var(--
 .refl-item { background:white; border-radius:var(--radius-sm); padding:16px; border:1px solid #e0f2fe; }
 .refl-meta { display:flex; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
 .refl-sesi { font-weight:700; color:#0369a1; font-size:0.83em; background:#e0f2fe; padding:2px 8px; border-radius:20px; }
-.refl-who  { font-size:0.82em; color:#0284c7; font-weight:600; }
 .refl-date { font-size:0.78em; color:#94a3b8; margin-left:auto; }
+.refl-grid { display:grid; grid-template-columns:1fr; gap:14px; }
+.refl-grid-2 { grid-template-columns:1fr 1fr; }
+@media (max-width:640px) { .refl-grid-2 { grid-template-columns:1fr; } }
+.refl-person { min-width:0; }
+.refl-grid-2 .refl-person { padding:12px; background:#f8fafc; border-radius:8px; border:1px solid #e2e8f0; }
+.refl-who  { font-size:0.82em; color:#0284c7; font-weight:700; margin-bottom:8px; }
+.refl-empty { font-size:0.82em; color:#94a3b8; font-style:italic; }
 .refl-row  { display:flex; gap:10px; align-items:flex-start; margin-bottom:8px; }
 .refl-row:last-child { margin-bottom:0; }
 .refl-icon { font-size:1.1em; margin-top:1px; flex-shrink:0; }
@@ -1892,19 +1898,40 @@ function buildReflectionsHTML(reflections, client) {
     return code;
   };
 
-  const rows = reflections.map(r => {
-    const label = isCouple ? `<span class="refl-who">${nameOf(r.client_code)}</span>` : '';
-    const dt = r.created_at ? new Date(r.created_at).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}) : '';
-    return `
-      <div class="refl-item">
-        <div class="refl-meta">
-          <span class="refl-sesi">Sesi ${r.session_number}</span>${label}
-          <span class="refl-date">${dt}</span>
-        </div>
-        ${r.syukur ? `<div class="refl-row"><span class="refl-icon">🌿</span><div class="refl-text"><span class="refl-lbl">Syukur</span><span>${r.syukur}</span></div></div>` : ''}
-        ${r.fokus  ? `<div class="refl-row"><span class="refl-icon">🎯</span><div class="refl-text"><span class="refl-lbl">Fokus</span><span>${r.fokus}</span></div></div>` : ''}
-      </div>`;
-  }).join('');
+  // Group by session so a couple's two entries sit side by side under one header
+  const bySesi = new Map();
+  reflections.forEach(r => {
+    const k = r.session_number;
+    if (!bySesi.has(k)) bySesi.set(k, []);
+    bySesi.get(k).push(r);
+  });
+
+  const rows = [...bySesi.entries()]
+    .sort((a,b) => b[0] - a[0])
+    .map(([sesi, items]) => {
+      const newest = items.reduce((a,b) =>
+        new Date(b.created_at||0) > new Date(a.created_at||0) ? b : a, items[0]);
+      const dt = newest.created_at
+        ? new Date(newest.created_at).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'})
+        : '';
+
+      const cards = items.map(r => `
+        <div class="refl-person">
+          ${isCouple ? `<div class="refl-who">${nameOf(r.client_code)}</div>` : ''}
+          ${r.syukur ? `<div class="refl-row"><span class="refl-icon">🌿</span><div class="refl-text"><span class="refl-lbl">Syukur</span><span>${r.syukur}</span></div></div>` : ''}
+          ${r.fokus  ? `<div class="refl-row"><span class="refl-icon">🎯</span><div class="refl-text"><span class="refl-lbl">Fokus</span><span>${r.fokus}</span></div></div>` : ''}
+          ${!r.syukur && !r.fokus ? `<div class="refl-empty">Dilewati</div>` : ''}
+        </div>`).join('');
+
+      return `
+        <div class="refl-item">
+          <div class="refl-meta">
+            <span class="refl-sesi">Sesi ${sesi}</span>
+            <span class="refl-date">${dt}</span>
+          </div>
+          <div class="refl-grid${isCouple && items.length > 1 ? ' refl-grid-2' : ''}">${cards}</div>
+        </div>`;
+    }).join('');
 
   return `
     <div class="section-hdr" style="margin-top:32px;">Refleksi Klien</div>

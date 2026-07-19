@@ -194,11 +194,36 @@ module.exports = async (req, res) => {
             created_at     TIMESTAMPTZ DEFAULT NOW()
           )
         `);
-        await pg.query(`
-          INSERT INTO reflections (client_code, session_number, syukur, fokus)
-          VALUES ($1,$2,$3,$4)
-          ON CONFLICT DO NOTHING
-        `, [code, sesiKe, (body.syukur||'').trim()||null, (body.fokus||'').trim()||null]);
+        // Older rows may predate the unique index; drop dupes (keep newest) so it can build.
+        let hasUniq = false;
+        try {
+          await pg.query(`
+            DELETE FROM reflections r USING reflections d
+            WHERE r.client_code = d.client_code
+              AND r.session_number = d.session_number
+              AND r.id < d.id
+          `);
+          await pg.query(`
+            CREATE UNIQUE INDEX IF NOT EXISTS reflections_code_sesi_idx
+            ON reflections (client_code, session_number)
+          `);
+          hasUniq = true;
+        } catch(_) {}
+
+        if (hasUniq) {
+          await pg.query(`
+            INSERT INTO reflections (client_code, session_number, syukur, fokus)
+            VALUES ($1,$2,$3,$4)
+            ON CONFLICT (client_code, session_number) DO UPDATE
+              SET syukur = EXCLUDED.syukur, fokus = EXCLUDED.fokus
+          `, [code, sesiKe, (body.syukur||'').trim()||null, (body.fokus||'').trim()||null]);
+        } else {
+          await pg.query(`DELETE FROM reflections WHERE client_code=$1 AND session_number=$2`, [code, sesiKe]);
+          await pg.query(
+            `INSERT INTO reflections (client_code, session_number, syukur, fokus) VALUES ($1,$2,$3,$4)`,
+            [code, sesiKe, (body.syukur||'').trim()||null, (body.fokus||'').trim()||null]
+          );
+        }
         return ok({ success: true });
       }
 
@@ -356,9 +381,11 @@ module.exports = async (req, res) => {
         }));
         let reflections = [];
         try {
-          await pg.query(`CREATE TABLE IF NOT EXISTS reflections (id SERIAL PRIMARY KEY, client_code TEXT, session_number INTEGER, syukur TEXT, fokus TEXT, created_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(client_code, session_number))`);
+          await pg.query(`CREATE TABLE IF NOT EXISTS reflections (id SERIAL PRIMARY KEY, client_code TEXT NOT NULL, session_number INTEGER NOT NULL, syukur TEXT, fokus TEXT, created_at TIMESTAMPTZ DEFAULT NOW())`);
           const rr = await pg.query(
-            `SELECT client_code, session_number, syukur, fokus, created_at FROM reflections WHERE client_code = ANY($1) ORDER BY session_number DESC`,
+            `SELECT client_code, session_number, syukur, fokus, created_at FROM reflections
+             WHERE client_code = ANY($1)
+             ORDER BY session_number DESC, client_code ASC`,
             [codes]
           );
           reflections = rr.rows;
