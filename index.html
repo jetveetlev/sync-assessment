@@ -550,11 +550,14 @@ async function verifyCode(code) {
       el.classList.add('valid');
       row.textContent = 'Kode valid ✓'; row.className = 'status-row ok';
       currentClient = data.type;
-      activePerson  = 0;
       _donePersons  = new Set();
       coupleInfo = data.type === 'couple'
         ? { code: data.code, name: data.name, partner_code: data.partner_code, partner_name: data.partner_name }
         : null;
+      // The client record always reports its "primary" partner as code/name
+      // and the other as partner_code/partner_name, regardless of which of
+      // the two codes was actually typed — so figure out which one this is.
+      activePerson = (coupleInfo && coupleInfo.partner_code === code.toUpperCase().trim()) ? 1 : 0;
       document.getElementById('typeGrid').style.display = 'flex';
       document.getElementById('btnPribadi').style.display = isCouple() ? 'none' : 'flex';
       document.getElementById('btnCoupleStart').style.display = isCouple() ? 'flex' : 'none';
