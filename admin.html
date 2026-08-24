@@ -1450,7 +1450,7 @@ function onEditMetaChange(el, field) {
 async function deleteEditSession(sessionId) {
   if (!confirm('Hapus sesi ini? Data tidak bisa dikembalikan.')) return;
   try {
-    const r = await api('delete_session', { id: sessionId, client_code: _editSessions.find(s=>s.id===sessionId)?.kode || '' });
+    const r = await api('delete_session', 'POST', { id: sessionId, client_code: _editSessions.find(s=>s.id===sessionId)?.kode || '' });
     if (r.success) {
       _editSessions = _editSessions.filter(s => s.id !== sessionId);
       renderEditTable();
@@ -1465,7 +1465,7 @@ async function saveEditData() {
   try {
     let ok = true;
     for (const s of _editSessions) {
-      const r = await api('update_session', {
+      const r = await api('update_session', 'POST', {
         id: s.id, client_code: s.kode,
         skor1: s.skor1, skor2: s.skor2, skor3: s.skor3, skor4: s.skor4, skor5: s.skor5, total: s.total,
         type: s.tipe, session_number: s.sesi,
