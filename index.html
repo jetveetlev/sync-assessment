@@ -156,6 +156,12 @@ body {
   font-size: 0.82em; color: #1e40af; line-height: 1.65;
 }
 
+.section-divider {
+  font-family: 'Lora', serif; font-size: 0.92em; font-weight: 700; color: var(--teal-dk);
+  margin: 22px 0 12px; padding-bottom: 8px; border-bottom: 2px solid var(--teal-lt);
+}
+.section-divider:first-child { margin-top: 0; }
+
 .q-card {
   background: white;
   border: 1.5px solid var(--border);
@@ -228,6 +234,9 @@ input[type=range]:focus { outline: none; }
 }
 .refleksi-q textarea:focus { border-color: #7c3aed; }
 .refleksi-q textarea::placeholder { color: #c4b5fd; }
+.refleksi-person { padding-top: 14px; margin-top: 14px; border-top: 1px dashed #e9d5ff; }
+.refleksi-person:first-child { padding-top: 0; margin-top: 0; border-top: none; }
+.refleksi-person-name { font-size: 0.78em; font-weight: 700; color: #7c3aed; text-transform: uppercase; letter-spacing: 0.5px; text-align: center; margin-bottom: 4px; margin-top: -2px; }
 .btn-purple { background: linear-gradient(135deg, #7c3aed, #a78bfa); color: white; box-shadow: 0 4px 16px rgba(124,58,237,0.3); }
 .btn-purple:hover:not(:disabled) { box-shadow: 0 6px 22px rgba(124,58,237,0.4); }
 .btn-indigo { background: linear-gradient(135deg, #4f46e5, #818cf8); color: white; box-shadow: 0 4px 16px rgba(79,70,229,0.3); }
@@ -353,15 +362,15 @@ input[type=range]:focus { outline: none; }
         <div class="type-desc">Evaluasi kesejahteraan dan kebahagiaan individual</div>
       </div>
     </div>
-    <div class="type-card relasi" id="btnRelasi" onclick="startQuiz('RELASI')" style="display:none;">
+    <div class="type-card relasi" id="btnCoupleStart" onclick="startCoupleCombined()" style="display:none;">
       <div class="type-icon-wrap indigo">
         <svg viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
         </svg>
       </div>
       <div>
-        <div class="type-name">Assessment Relasi</div>
-        <div class="type-desc">Evaluasi kualitas hubungan dan dinamika pasangan</div>
+        <div class="type-name" id="coupleStartTitle">Mulai Assessment</div>
+        <div class="type-desc">Pribadi &amp; Relasi digabung dalam satu pengisian per orang</div>
       </div>
     </div>
   </div>
@@ -394,7 +403,7 @@ input[type=range]:focus { outline: none; }
       </div>
     </div>
 
-    <div class="instruction">
+    <div class="instruction" id="quizInstruction">
       Ingat-ingat <strong>sepanjang seminggu terakhir</strong> — bagaimana perasaan Anda secara keseluruhan di setiap area ini. Geser ke kanan = semakin baik.
     </div>
 
@@ -417,7 +426,9 @@ input[type=range]:focus { outline: none; }
       <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
     </div>
     <div class="refleksi-title">Refleksi Singkat</div>
-    <p class="refleksi-sub">Dua pertanyaan kecil untuk melengkapi sesi ini. Jawab sesuai perasaan kamu.</p>
+    <div class="refleksi-person-name" id="refleksiName" style="display:none;"></div>
+    <p class="refleksi-sub" id="refleksiSub">Dua pertanyaan kecil untuk melengkapi sesi ini. Jawab sesuai perasaan kamu.</p>
+
     <div class="refleksi-q">
       <label>🌿 Satu hal yang kamu syukuri minggu ini?</label>
       <textarea id="r-syukur" rows="3" placeholder="Tuliskan di sini..."></textarea>
@@ -426,6 +437,7 @@ input[type=range]:focus { outline: none; }
       <label>🎯 Apa yang ingin kamu fokuskan di sesi berikutnya?</label>
       <textarea id="r-fokus" rows="3" placeholder="Tuliskan di sini..."></textarea>
     </div>
+
     <button class="btn btn-purple" id="saveRefleksiBtn" onclick="saveReflection()">Simpan Refleksi</button>
     <div class="refleksi-skip"><button onclick="skipReflection()">Lewati</button></div>
   </div>
@@ -486,10 +498,20 @@ const quizData = {
   ],
 };
 
-let currentType  = '';
+let currentType   = '';   // 'PRIBADI' (individual) or 'COMBO' (couple: both types, one person)
 let currentClient = '';
-let sesiKe       = 1;
+let sesiKe        = 1;
 let codeTimer;
+// For couples, holds { code, name, partner_code, partner_name }. Couples fill
+// Pribadi + Relasi together per person, then hand off to the other partner —
+// no separate type-picking, no re-entering the code, no session-number drift.
+let coupleInfo    = null;
+let activePerson  = 0;         // 0 = coupleInfo.code, 1 = coupleInfo.partner_code
+let _donePersons  = new Set(); // person indices who finished this sitting
+
+function isCouple() { return currentClient === 'couple' && !!(coupleInfo && coupleInfo.partner_code); }
+function personName(i)  { return i === 1 ? coupleInfo.partner_name : coupleInfo.name; }
+function personCode(i)  { return i === 1 ? coupleInfo.partner_code : coupleInfo.code; }
 
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -509,7 +531,10 @@ function onCodeInput() {
   el.classList.remove('valid','error');
   row.textContent = ''; row.className = 'status-row';
   document.getElementById('typeGrid').style.display = 'none';
-  document.getElementById('btnRelasi').style.display = 'none';
+  document.getElementById('btnCoupleStart').style.display = 'none';
+  coupleInfo = null;
+  activePerson = 0;
+  _donePersons = new Set();
   clearTimeout(codeTimer);
   if (el.value.length === 8) codeTimer = setTimeout(() => verifyCode(el.value), 420);
 }
@@ -525,10 +550,19 @@ async function verifyCode(code) {
       el.classList.add('valid');
       row.textContent = 'Kode valid ✓'; row.className = 'status-row ok';
       currentClient = data.type;
-      _doneTypes = new Set();
+      activePerson  = 0;
+      _donePersons  = new Set();
+      coupleInfo = data.type === 'couple'
+        ? { code: data.code, name: data.name, partner_code: data.partner_code, partner_name: data.partner_name }
+        : null;
       document.getElementById('typeGrid').style.display = 'flex';
-      if (data.type === 'couple') document.getElementById('btnRelasi').style.display = 'flex';
-      fetch(`/api?action=next_session&code=${code}`)
+      document.getElementById('btnPribadi').style.display = isCouple() ? 'none' : 'flex';
+      document.getElementById('btnCoupleStart').style.display = isCouple() ? 'flex' : 'none';
+
+      const nsUrl = isCouple()
+        ? `/api?action=next_session&code=${coupleInfo.code}&partner=${coupleInfo.partner_code}`
+        : `/api?action=next_session&code=${code}`;
+      fetch(nsUrl)
         .then(r => r.json())
         .then(d => { sesiKe = d.next || 1; document.getElementById('sesiNum').textContent = sesiKe; })
         .catch(() => {});
@@ -568,15 +602,18 @@ function updateSlider(el) {
   el.style.backgroundSize = pct + '% 100%';
 }
 
-function startQuiz(type) {
-  currentType = type;
-  const code  = document.getElementById('clientCode').value;
-  document.getElementById('quizTitle').textContent = type === 'PRIBADI' ? 'Assessment Pribadi' : 'Assessment Relasi';
-  document.getElementById('quizSub').textContent   = 'Kode: ' + code;
+function attachProgressTracking(qc) {
+  const update = () => {
+    const inputs = qc.querySelectorAll('input[type=range]');
+    const touched = Array.from(inputs).filter(e => parseFloat(e.value) > 0).length;
+    document.getElementById('progress').style.width = (inputs.length ? touched / inputs.length * 100 : 0) + '%';
+  };
+  qc.querySelectorAll('input[type=range]').forEach(el => el.addEventListener('input', update));
+  update();
+}
 
-  const qc = document.getElementById('questions');
-  qc.innerHTML = '';
-  quizData[type].forEach(q => {
+function renderQuestionBlock(container, list) {
+  list.forEach(q => {
     const card = document.createElement('div');
     card.className = 'q-card';
     card.innerHTML = `
@@ -588,27 +625,63 @@ function startQuiz(type) {
                  aria-label="${q.title}" oninput="updateSlider(this)">
         </div>
       </div>`;
-    qc.appendChild(card);
+    container.appendChild(card);
     updateSlider(card.querySelector('input'));
   });
+}
 
-  document.getElementById('progress').style.width = '0%';
-  qc.querySelectorAll('input[type=range]').forEach(el => {
-    el.addEventListener('input', () => {
-      const all     = qc.querySelectorAll('input[type=range]');
-      const touched = Array.from(all).filter(e => parseFloat(e.value) > 0).length;
-      document.getElementById('progress').style.width = (touched / all.length * 100) + '%';
-    });
-  });
+// Individual clients: single-type form, unchanged from the original flow.
+function startQuiz(type) {
+  currentType = type;
+  const code  = document.getElementById('clientCode').value;
+  document.getElementById('quizTitle').textContent = 'Assessment Pribadi';
+  document.getElementById('quizSub').textContent   = 'Kode: ' + code;
+  document.getElementById('quizInstruction').innerHTML =
+    'Ingat-ingat <strong>sepanjang seminggu terakhir</strong> — bagaimana perasaan Anda secara keseluruhan di setiap area ini. Geser ke kanan = semakin baik.';
+
+  const qc = document.getElementById('questions');
+  qc.innerHTML = '';
+  renderQuestionBlock(qc, quizData.PRIBADI);
+  attachProgressTracking(qc);
 
   showScreen('s-quiz');
 }
 
-let _lastSessionId   = null;
-let _lastCode        = null;
-let _lastSesiKe      = null;
+// Couples: one person fills Pribadi + Relasi together, in one screen, one
+// submit — then the app hands off to the other partner. Two visits total
+// instead of four, and both types always share the same sesi number because
+// they're posted from the same submit action.
+function startCoupleCombined() {
+  currentType = 'COMBO';
+  const name = personName(activePerson);
+  document.getElementById('quizTitle').textContent = 'Assessment Lengkap';
+  document.getElementById('quizSub').textContent   = `Untuk: ${name}`;
+  document.getElementById('quizInstruction').innerHTML =
+    `Giliran <strong>${name}</strong>. Isi kedua bagian di bawah ini — Pribadi dan Relasi — ` +
+    `lalu kirim sekali. Ingat-ingat sepanjang seminggu terakhir. Geser ke kanan = semakin baik.`;
+
+  const qc = document.getElementById('questions');
+  qc.innerHTML = '';
+  const divider1 = document.createElement('div');
+  divider1.className = 'section-divider';
+  divider1.textContent = 'Assessment Pribadi';
+  qc.appendChild(divider1);
+  renderQuestionBlock(qc, quizData.PRIBADI);
+
+  const divider2 = document.createElement('div');
+  divider2.className = 'section-divider';
+  divider2.textContent = 'Assessment Relasi';
+  qc.appendChild(divider2);
+  renderQuestionBlock(qc, quizData.RELASI);
+
+  attachProgressTracking(qc);
+  showScreen('s-quiz');
+}
+
+let _lastSessionId    = null;
+let _lastCode         = null;   // code the just-completed submission belongs to
+let _lastSesiKe       = null;
 let _pendingMilestone = null;
-let _doneTypes       = new Set();   // assessment types completed this sitting
 
 const MILESTONE_MSG = {
   sesi_1:   { icon:'🌱', badge:'Sesi Pertama', title:'Perjalanan Dimulai!', desc:'Langkah pertama adalah yang paling penting. Kamu sudah memulai — itu luar biasa!' },
@@ -619,49 +692,95 @@ const MILESTONE_MSG = {
   growth20: { icon:'📈', badge:'Pertumbuhan', title:'Tumbuh 20%!', desc:'Total skor kamu naik lebih dari 20% sejak sesi pertama. Perubahan nyata sedang terjadi!' },
 };
 
-async function submitData() {
-  const btn    = document.getElementById('submitBtn');
-  const code   = document.getElementById('clientCode').value;
-  const inputs = document.querySelectorAll('.score-input');
-  const scores = Array.from(inputs).map(i => parseFloat(i.value));
-  const total  = scores.reduce((a, b) => a + b, 0);
+async function submitOne(code, tipe, scores) {
+  const total = scores.reduce((a, b) => a + b, 0);
+  const res = await fetch('/api?action=submit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      kode: code,
+      tanggal: new Date().toISOString().split('T')[0],
+      tipe,
+      sesi: sesiKe,
+      skor1: scores[0]||0, skor2: scores[1]||0,
+      skor3: scores[2]||0, skor4: scores[3]||0,
+      skor5: scores[4]||0,
+      total: parseFloat(total.toFixed(1)),
+    }),
+  });
+  return res.json();
+}
 
+async function submitData() {
+  const btn = document.getElementById('submitBtn');
   btn.disabled = true;
   setLoading(true);
   try {
-    const res = await fetch('/api?action=submit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        kode: code,
-        tanggal: new Date().toISOString().split('T')[0],
-        tipe: currentType,
-        sesi: sesiKe,
-        skor1: scores[0]||0, skor2: scores[1]||0,
-        skor3: scores[2]||0, skor4: scores[3]||0,
-        skor5: scores[4]||0,
-        total: parseFloat(total.toFixed(1)),
-      }),
-    });
-    const data = await res.json();
-    if (data.success) {
-      _lastSessionId = data.session_id;
-      _lastCode      = code;
-      _lastSesiKe    = sesiKe;
-      _doneTypes.add(currentType);
-      // Pick first recognised milestone
-      const ms = (data.milestones || []).find(m => MILESTONE_MSG[m]);
-      _pendingMilestone = ms ? MILESTONE_MSG[ms] : null;
-      showScreen('s-refleksi');
+    const milestones = [];
+    let anyFail = false;
+    let code;
+
+    if (currentType === 'COMBO') {
+      code = personCode(activePerson);
+      const inputs = document.getElementById('questions').querySelectorAll('.score-input');
+      const all = Array.from(inputs).map(i => parseFloat(i.value));
+      const pribadiScores = all.slice(0, quizData.PRIBADI.length);
+      const relasiScores  = all.slice(quizData.PRIBADI.length);
+
+      for (const [tipe, scores] of [['PRIBADI', pribadiScores], ['RELASI', relasiScores]]) {
+        try {
+          const data = await submitOne(code, tipe, scores);
+          if (data.success) {
+            if (data.session_id) _lastSessionId = data.session_id;
+            (data.milestones || []).forEach(m => milestones.push(m));
+          } else anyFail = true;
+        } catch { anyFail = true; }
+      }
     } else {
-      alert('Gagal menyimpan. Coba lagi.');
+      code = document.getElementById('clientCode').value;
+      const inputs = document.getElementById('questions').querySelectorAll('.score-input');
+      const scores = Array.from(inputs).map(i => parseFloat(i.value));
+      try {
+        const data = await submitOne(code, currentType, scores);
+        if (data.success) {
+          if (data.session_id) _lastSessionId = data.session_id;
+          (data.milestones || []).forEach(m => milestones.push(m));
+        } else anyFail = true;
+      } catch { anyFail = true; }
     }
+
+    if (anyFail && !milestones.length && !_lastSessionId) {
+      alert('Gagal menyimpan. Coba lagi.');
+      return;
+    }
+    if (anyFail) {
+      alert('Sebagian data gagal tersimpan. Coach akan diberitahu — Anda tetap bisa lanjut.');
+    }
+
+    _lastCode   = code;
+    _lastSesiKe = sesiKe;
+    if (currentType === 'COMBO') _donePersons.add(activePerson);
+
+    const ms = milestones.find(m => MILESTONE_MSG[m]);
+    _pendingMilestone = ms ? MILESTONE_MSG[ms] : null;
+
+    document.getElementById('r-syukur').value = '';
+    document.getElementById('r-fokus').value  = '';
+    const nameEl = document.getElementById('refleksiName');
+    if (currentType === 'COMBO') {
+      nameEl.textContent = personName(activePerson);
+      nameEl.style.display = '';
+    } else {
+      nameEl.style.display = 'none';
+    }
+
+    showScreen('s-refleksi');
   } catch { alert('Koneksi gagal. Periksa internet Anda.'); }
   finally { btn.disabled = false; setLoading(false); }
 }
 
 async function saveReflection() {
-  const btn   = document.getElementById('saveRefleksiBtn');
+  const btn    = document.getElementById('saveRefleksiBtn');
   const syukur = document.getElementById('r-syukur').value.trim();
   const fokus  = document.getElementById('r-fokus').value.trim();
   btn.disabled = true;
@@ -673,6 +792,7 @@ async function saveReflection() {
       body: JSON.stringify({ client_code: _lastCode, session_number: _lastSesiKe, syukur, fokus }),
     });
   } catch {}
+  finally { btn.disabled = false; btn.textContent = 'Simpan Refleksi'; }
   afterReflection();
 }
 
@@ -692,22 +812,21 @@ function afterReflection() {
   }
 }
 
-// Couples fill both Pribadi and Relasi each session — offer the one still missing.
-function pendingType() {
-  if (currentClient !== 'couple') return null;
-  return ['PRIBADI','RELASI'].find(t => !_doneTypes.has(t)) || null;
-}
+// Couples hand off to whichever partner hasn't filled their combined form yet.
+function pendingPerson() {
+  if (!isCouple()) return null;
+  return [0,1].find(i => !_donePersons.has(i));
+  }
 
 function showThanks() {
-  const next = pendingType();
+  const next    = pendingPerson();
   const nextBox = document.getElementById('thanksNext');
   const finish  = document.getElementById('finishBtn');
   const sub     = document.getElementById('thanksSub');
 
-  if (next) {
-    document.getElementById('nextTypeBtn').textContent =
-      next === 'RELASI' ? 'Lanjutkan ke Assessment Relasi' : 'Lanjutkan ke Assessment Pribadi';
-    sub.innerHTML = 'Assessment ' + (next === 'RELASI' ? 'Pribadi' : 'Relasi') + ' Anda telah tersimpan.';
+  if (next !== null && next !== undefined) {
+    document.getElementById('nextTypeBtn').textContent = 'Lanjutkan untuk ' + personName(next);
+    sub.innerHTML = `Assessment ${personName(activePerson)} (Pribadi &amp; Relasi) telah tersimpan.`;
     nextBox.style.display = '';
     finish.textContent = 'Nanti Saja';
   } else {
@@ -719,11 +838,10 @@ function showThanks() {
 }
 
 function continueToNextType() {
-  const next = pendingType();
-  if (!next) { showThanks(); return; }
-  document.getElementById('r-syukur').value = '';
-  document.getElementById('r-fokus').value  = '';
-  startQuiz(next);
+  const next = pendingPerson();
+  if (next === null || next === undefined) { showThanks(); return; }
+  activePerson = next;
+  startCoupleCombined();
 }
 </script>
 </body>

@@ -255,6 +255,10 @@ body { font-family:'Inter',-apple-system,system-ui,sans-serif; background:var(--
 .edit-del-btn:hover { background:#fff1f2; }
 .edit-name-chip { font-weight:600; color:var(--slate); }
 .edit-type-chip { font-size:0.78em; font-weight:700; color:#0d9488; background:#ccfbf1; padding:2px 6px; border-radius:20px; margin-right:4px; }
+.edit-type-sel { padding:4px 6px; border:1.5px solid #e2e8f0; border-radius:6px; font-size:0.85em; font-weight:600; color:#0d9488; background:#f0fdfa; margin-right:6px; cursor:pointer; }
+.edit-type-sel:focus { outline:none; border-color:var(--teal); }
+.edit-sesi-inp { width:46px; padding:4px 6px; border:1.5px solid #e2e8f0; border-radius:6px; font-size:0.85em; text-align:center; }
+.edit-sesi-inp:focus { outline:none; border-color:var(--teal); }
 @media(min-width:600px) { .overlay { align-items:center; } }
 
 .modal {
@@ -1394,7 +1398,13 @@ function renderEditTable() {
     ).join('');
     return `<tr data-id="${s.id}">
       <td><span class="edit-name-chip">${nama}</span></td>
-      <td><span class="edit-type-chip">${s.tipe}</span> Sesi ${s.sesi}</td>
+      <td>
+        <select class="edit-type-sel" data-id="${s.id}" onchange="onEditMetaChange(this,'tipe')">
+          <option value="PRIBADI" ${s.tipe==='PRIBADI'?'selected':''}>PRIBADI</option>
+          <option value="RELASI" ${s.tipe==='RELASI'?'selected':''}>RELASI</option>
+        </select>
+        Sesi <input class="edit-sesi-inp" type="number" min="1" max="99" step="1" value="${s.sesi}" data-id="${s.id}" onchange="onEditMetaChange(this,'sesi')">
+      </td>
       ${skorInputs}
       <td class="edit-total-cell" id="etotal_${s.id}">${parseFloat(s.total).toFixed(1)}</td>
       <td><button class="edit-del-btn" onclick="deleteEditSession(${s.id})" title="Hapus sesi ini">×</button></td>
@@ -1425,6 +1435,18 @@ function onEditScoreChange(inp) {
   if (cell) cell.textContent = total.toFixed(1);
 }
 
+function onEditMetaChange(el, field) {
+  const id = parseInt(el.dataset.id);
+  const s = _editSessions.find(x => x.id === id);
+  if (!s) return;
+  if (field === 'tipe') {
+    s.tipe = el.value === 'RELASI' ? 'RELASI' : 'PRIBADI';
+  } else if (field === 'sesi') {
+    s.sesi = Math.max(1, parseInt(el.value) || 1);
+    el.value = s.sesi;
+  }
+}
+
 async function deleteEditSession(sessionId) {
   if (!confirm('Hapus sesi ini? Data tidak bisa dikembalikan.')) return;
   try {
@@ -1446,6 +1468,7 @@ async function saveEditData() {
       const r = await api('update_session', {
         id: s.id, client_code: s.kode,
         skor1: s.skor1, skor2: s.skor2, skor3: s.skor3, skor4: s.skor4, skor5: s.skor5, total: s.total,
+        type: s.tipe, session_number: s.sesi,
       });
       if (!r.success) { ok = false; }
     }

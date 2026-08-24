@@ -108,16 +108,32 @@ module.exports = async (req, res) => {
         const code = (q.code || '').toUpperCase().trim();
         if (code.length !== 8) return ok({ mode: 'invalid' });
         const r = await pg.query(
-          `SELECT type FROM clients WHERE code=$1 OR partner_code=$1 LIMIT 1`, [code]
+          `SELECT type, name, code, partner_code, partner_name FROM clients WHERE code=$1 OR partner_code=$1 LIMIT 1`,
+          [code]
         );
-        return r.rows.length ? ok({ mode: 'input', type: r.rows[0].type }) : ok({ mode: 'invalid' });
+        if (!r.rows.length) return ok({ mode: 'invalid' });
+        const c = r.rows[0];
+        return ok({
+          mode: 'input',
+          type: c.type,
+          name: c.name,
+          code: c.code,
+          partner_code: c.partner_code || null,
+          partner_name: c.partner_name || null,
+        });
       }
 
-      // ── Client: next session number ──────────────────────────────────────
+      // ── Client: next session number ────────────────────────────────────────
+      // For couples, numbering is shared across both partners and both
+      // assessment types — one "sesi N" always means the same coaching
+      // session for everyone, so pass `partner` to include their code too.
       case 'next_session': {
-        const code = (q.code || '').toUpperCase().trim();
+        const code    = (q.code || '').toUpperCase().trim();
+        const partner = (q.partner || '').toUpperCase().trim();
+        const codes   = partner ? [code, partner] : [code];
         const r = await pg.query(
-          `SELECT session_number FROM sessions WHERE client_code=$1 ORDER BY session_number DESC LIMIT 1`, [code]
+          `SELECT session_number FROM sessions WHERE client_code = ANY($1) ORDER BY session_number DESC LIMIT 1`,
+          [codes]
         );
         return ok({ next: (r.rows[0]?.session_number || 0) + 1 });
       }
@@ -409,9 +425,11 @@ module.exports = async (req, res) => {
         if (!cr.rows.length) return err('Forbidden', 403);
         const s1=parseFloat(body.skor1)||0, s2=parseFloat(body.skor2)||0,
               s3=parseFloat(body.skor3)||0, s4=parseFloat(body.skor4)||0, s5=parseFloat(body.skor5)||0;
+        const type = body.type === 'RELASI' ? 'RELASI' : 'PRIBADI';
+        const sesiNum = Math.max(1, parseInt(body.session_number) || 1);
         await pg.query(
-          `UPDATE sessions SET skor1=$1,skor2=$2,skor3=$3,skor4=$4,skor5=$5,total=$6 WHERE id=$7`,
-          [s1,s2,s3,s4,s5,s1+s2+s3+s4+s5,sid]
+          `UPDATE sessions SET skor1=$1,skor2=$2,skor3=$3,skor4=$4,skor5=$5,total=$6,type=$7,session_number=$8 WHERE id=$9`,
+          [s1,s2,s3,s4,s5,s1+s2+s3+s4+s5,type,sesiNum,sid]
         );
         return ok({ success: true });
       }
