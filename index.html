@@ -562,10 +562,9 @@ async function verifyCode(code) {
       document.getElementById('btnPribadi').style.display = isCouple() ? 'none' : 'flex';
       document.getElementById('btnCoupleStart').style.display = isCouple() ? 'flex' : 'none';
 
-      const nsUrl = isCouple()
-        ? `/api?action=next_session&code=${coupleInfo.code}&partner=${coupleInfo.partner_code}`
-        : `/api?action=next_session&code=${code}`;
-      fetch(nsUrl)
+      // Each person's own next session — not tied to how far their partner has gotten.
+      const nsCode = isCouple() ? personCode(activePerson) : code;
+      fetch(`/api?action=next_session&code=${nsCode}`)
         .then(r => r.json())
         .then(d => { sesiKe = d.next || 1; document.getElementById('sesiNum').textContent = sesiKe; })
         .catch(() => {});

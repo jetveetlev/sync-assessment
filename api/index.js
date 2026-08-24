@@ -124,16 +124,15 @@ module.exports = async (req, res) => {
       }
 
       // ── Client: next session number ────────────────────────────────────────
-      // For couples, numbering is shared across both partners and both
-      // assessment types — one "sesi N" always means the same coaching
-      // session for everyone, so pass `partner` to include their code too.
+      // Per own code only, not combined with a partner's — each person's
+      // combined Pribadi+Relasi submit is atomic, so their own history can't
+      // drift internally, and their "next" shouldn't be dragged forward just
+      // because their partner happens to be further along.
       case 'next_session': {
-        const code    = (q.code || '').toUpperCase().trim();
-        const partner = (q.partner || '').toUpperCase().trim();
-        const codes   = partner ? [code, partner] : [code];
+        const code = (q.code || '').toUpperCase().trim();
         const r = await pg.query(
-          `SELECT session_number FROM sessions WHERE client_code = ANY($1) ORDER BY session_number DESC LIMIT 1`,
-          [codes]
+          `SELECT session_number FROM sessions WHERE client_code=$1 ORDER BY session_number DESC LIMIT 1`,
+          [code]
         );
         return ok({ next: (r.rows[0]?.session_number || 0) + 1 });
       }
@@ -448,6 +447,37 @@ module.exports = async (req, res) => {
         if (!cr.rows.length) return err('Forbidden', 403);
         await pg.query(`DELETE FROM sessions WHERE id=$1`, [sid]);
         return ok({ success: true });
+      }
+
+      // ── One-off: merge a stray mis-numbered reflection into sesi 1 ────────
+      // Temporary, key-guarded, self-removing after use. Not linked from any
+      // UI. Targets exactly Adrian & Ivone's data, nothing else.
+      case 'onceoff_merge_reflection': {
+        if ((q.key || '') !== 'jl-9f3c24aug') return err('Forbidden', 403);
+        const cr = await pg.query(
+          `SELECT code, partner_code, name, partner_name FROM clients
+           WHERE name ILIKE '%Adrian%' AND partner_name ILIKE '%Ivone%' LIMIT 1`
+        );
+        if (!cr.rows.length) return err('Client not found', 404);
+        const ivoneCode = cr.rows[0].partner_code;
+
+        const rr = await pg.query(
+          `SELECT id, session_number, syukur, fokus FROM reflections
+           WHERE client_code=$1 AND session_number IN (1,2) ORDER BY session_number`,
+          [ivoneCode]
+        );
+        const s1 = rr.rows.find(r => r.session_number === 1);
+        const s2 = rr.rows.find(r => r.session_number === 2);
+        if (!s1 || !s2) return ok({ skipped: true, found: rr.rows });
+
+        const join = (a, b) => [a, b].map(x => (x || '').trim()).filter(Boolean).join('\n');
+        const mergedSyukur = join(s1.syukur, s2.syukur);
+        const mergedFokus  = join(s1.fokus, s2.fokus);
+
+        await pg.query(`UPDATE reflections SET syukur=$1, fokus=$2 WHERE id=$3`, [mergedSyukur, mergedFokus, s1.id]);
+        await pg.query(`DELETE FROM reflections WHERE id=$1`, [s2.id]);
+
+        return ok({ success: true, ivoneCode, merged: { syukur: mergedSyukur, fokus: mergedFokus }, deletedId: s2.id });
       }
 
       default:
